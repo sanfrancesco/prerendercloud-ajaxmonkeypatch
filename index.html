@@ -12,17 +12,24 @@
       img.logo { max-width: 75px; }
     </style>
     <link rel='stylesheet' href='https://unpkg.com/purecss@0.6.1/build/pure-min.css'>
+    <title>Prerender.cloud AJAX monkey patch test</title>
   </head>
   <body>
     <div class='container'>
       <img class='logo' src='/prerender-cloud-logo.svg' />
-      <h1>Prerender.cloud AJAX monkey patch test</h1>
-      <p>This is a test for an XHR and window.fetch monkey patch included by default from prerender.cloud. It should be run against all major browsers.</p>
+      <h1><a href='https://www.prerender.cloud/' target='_blank'>Prerender.cloud</a> AJAX monkey patch test</h1>
+      <p>This is a test for an XHR and window.fetch monkey patch included by default from <a href='https://www.prerender.cloud/' target='_blank'>prerender.cloud</a>. It should be run against all major browsers.</p>
       <p>
         The monkey patch stubs GET requests with a url->payload mapping from a base64 encoded JSON object. Once an endpoint is called, it is cleared from the stub/patch.
         <br />
         The data structure looks like:
         <pre><code>{'http://example.org/ajax-endpoint': 'aGVsbG8gd29ybGQ='}</code></pre>
+      </p>
+      <p>
+        <ul>
+          <li>base64 is used because escaping JSON payloads in the DOM is confusing and hard to understand after the fact</li>
+          <li>multi-byte characters are used in this test since there's <a href='https://coolaj86.com/articles/base64-unicode-utf-8-javascript-and-you/'>potential for loss with base64 encoding</a></li>
+        </ul>
       </p>
 
       <h2>Happy path application/json</h2>
@@ -96,6 +103,34 @@
 </script>
 
 <script type='text/javascript'>
+
+  var originalXMLHttpRequestOpen = XMLHttpRequest.prototype.open;
+  var originalXMLHttpRequestSend = XMLHttpRequest.prototype.send;
+
+  function restore() {
+    XMLHttpRequest.prototype.open = originalXMLHttpRequestOpen;
+    XMLHttpRequest.prototype.send = originalXMLHttpRequestSend;
+  }
+
+  var base64Expectations = {
+    dev: {
+      // new Buffer(JSON.stringify({'http://localhost:8888/json1': JSON.stringify({text: 'from-client: I ½ ♥ 𩶘'})})).toString('base64')
+      json: 'eyJodHRwOi8vbG9jYWxob3N0Ojg4ODgvanNvbjEiOiJ7XCJ0ZXh0XCI6XCJmcm9tLWNsaWVudDogSSDCvSDimaUg8Km2mFwifSJ9',
+      // new Buffer(JSON.stringify({'http://localhost:8888/text1': 'from-client: I ½ ♥ 𩶘'})).toString('base64')
+      text: 'eyJodHRwOi8vbG9jYWxob3N0Ojg4ODgvdGV4dDEiOiJmcm9tLWNsaWVudDogSSDCvSDimaUg8Km2mCJ9'
+    },
+    prod: {
+      // new Buffer(JSON.stringify({'https://prerendercloud-ajaxmonkeypatch.herokuapp.com/json1': JSON.stringify({text: 'from-client: I ½ ♥ 𩶘'})})).toString('base64')
+      json: 'eyJodHRwczovL3ByZXJlbmRlcmNsb3VkLWFqYXhtb25rZXlwYXRjaC5oZXJva3VhcHAuY29tL2pzb24xIjoie1widGV4dFwiOlwiZnJvbS1jbGllbnQ6IEkgwr0g4pmlIPCptphcIn0ifQ==',
+      // new Buffer(JSON.stringify({'https://prerendercloud-ajaxmonkeypatch.herokuapp.com/text1': 'from-client: I ½ ♥ 𩶘'})).toString('base64')
+      text: 'eyJodHRwczovL3ByZXJlbmRlcmNsb3VkLWFqYXhtb25rZXlwYXRjaC5oZXJva3VhcHAuY29tL3RleHQxIjoiZnJvbS1jbGllbnQ6IEkgwr0g4pmlIPCptpgifQ=='
+    }
+  };
+  var getEnv = function() { return window.location.origin.match(/localhost/) ? 'dev' : 'prod'; };
+  var getField = function(field) { return base64Expectations[getEnv()][field]; };
+  base64Expectations.json = function() { return getField('json'); };
+  base64Expectations.text = function() { return getField('text'); };
+
   /**
    * - ajaxMonkeyPatch stubs XHR GET requests with a url-> payload mapping from a base64 encoded JSON object
    *   once an endpoint is called, it is cleared from the stub
@@ -107,20 +142,18 @@
   (function(window){
     var host = '/'
     // when base64 is valid stringified JSON payload:
-    // new Buffer(JSON.stringify({'http://localhost:8888/json1': JSON.stringify({text: 'from-client: I ½ ♥ 𩶘'})})).toString('base64')
-    ajaxMonkeyPatch(window, 'eyJodHRwOi8vbG9jYWxob3N0Ojg4ODgvanNvbjEiOiJ7XCJ0ZXh0XCI6XCJmcm9tLWNsaWVudDogSSDCvSDimaUg8Km2mFwifSJ9');
+    ajaxMonkeyPatch(window, base64Expectations.json());
     runTests('xhr1','xhr2', host + 'json1', true);
+
+    // when valid text payload
+    restore();
+    ajaxMonkeyPatch(window, base64Expectations.text());
+    runTests('xhr1text','xhr2text', host + 'text1', false);
 
     // when base64 is bad
     restore();
     ajaxMonkeyPatch(window, 'invalid-base64');
     runTests('xhr1bad','xhr2bad', host + 'json1', true);
-
-    // when valid text payload
-    // new Buffer(JSON.stringify({'http://localhost:8888/text1': 'from-client: I ½ ♥ 𩶘'})).toString('base64')
-    restore();
-    ajaxMonkeyPatch(window, 'eyJodHRwOi8vbG9jYWxob3N0Ojg4ODgvdGV4dDEiOiJmcm9tLWNsaWVudDogSSDCvSDimaUg8Km2mCJ9');
-    runTests('xhr1text','xhr2text', host + 'text1', false);
   })(window)
 
 </script>

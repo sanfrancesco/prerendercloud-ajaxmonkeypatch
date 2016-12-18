@@ -1,12 +1,5 @@
-var originalXMLHttpRequestOpen = XMLHttpRequest.prototype.open;
-var originalXMLHttpRequestSend = XMLHttpRequest.prototype.send;
-
-function restore() {
-  XMLHttpRequest.prototype.open = originalXMLHttpRequestOpen;
-  XMLHttpRequest.prototype.send = originalXMLHttpRequestSend;
-}
-
 function ajaxMonkeyPatch(window, cachedResponses) {
+  // https://coolaj86.com/articles/base64-unicode-utf-8-javascript-and-you/
   function b64ToUtf8(b64) {
     var binstr = atob(b64);
     var escstr = binstr.replace(/(.)/g, function (m, p) {
@@ -24,11 +17,15 @@ function ajaxMonkeyPatch(window, cachedResponses) {
     return;
   }
 
-  window.cachedResponses = cachedResponses;
+  window.pcCachedResponses = cachedResponses;
   var xhrProto = XMLHttpRequest.prototype,
   origOpen = xhrProto.open;
   xhrProto.open = function (method, url) {
     this._url = url;
+
+    // normalize relative paths as absolute paths on same origin (because that's what the server does)
+    if (this._url && this._url.startsWith('/')) this._url = window.location.origin + this._url;
+
     return origOpen.apply(this, arguments);
   };
 
