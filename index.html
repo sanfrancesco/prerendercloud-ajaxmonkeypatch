@@ -1,0 +1,126 @@
+<!DOCTYPE HTML>
+
+<html>
+  <head>
+    <meta charset = 'UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <script type='text/javascript' src='/monkey-patch.js'></script>
+    <script type='text/javascript' src='/ajax-helper.js'></script>
+    <style>
+      div.container { margin: 1em; }
+      table th,td { text-align: left; }
+      img.logo { max-width: 75px; }
+    </style>
+    <link rel='stylesheet' href='https://unpkg.com/purecss@0.6.1/build/pure-min.css'>
+  </head>
+  <body>
+    <div class='container'>
+      <img class='logo' src='/prerender-cloud-logo.svg' />
+      <h1>Prerender.cloud AJAX monkey patch test</h1>
+      <p>This is a test for an XHR and window.fetch monkey patch included by default from prerender.cloud. It should be run against all major browsers.</p>
+      <p>
+        The monkey patch stubs GET requests with a url->payload mapping from a base64 encoded JSON object. Once an endpoint is called, it is cleared from the stub/patch.
+        <br />
+        The data structure looks like:
+        <pre><code>{'http://example.org/ajax-endpoint': 'aGVsbG8gd29ybGQ='}</code></pre>
+      </p>
+
+      <h2>Happy path application/json</h2>
+      <table class='pure-table pure-table-bordered'>
+        <tr>
+          <th>1st req should come from stub</th>
+          <td id='xhr1-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
+          <td id='xhr1-check'></td>
+        </tr>
+        <tr>
+          <th>2nd req should come from server</th>
+          <td id='xhr2-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+          <td id='xhr2-check'></td>
+        </tr>
+      </table>
+
+      <h2>Happy path text/plain</h2>
+      <table class='pure-table pure-table-bordered'>
+        <tr>
+          <th>1st req should come from stub</th>
+          <td id='xhr1text-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
+          <td id='xhr1text-check'></td>
+        </tr>
+        <tr>
+          <th>2nd req should come from server</th>
+          <td id='xhr2text-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+          <td id='xhr2text-check'></td>
+        </tr>
+      </table>
+
+      <h2>Bad base64</h2>
+      <table class='pure-table pure-table-bordered'>
+        <tr>
+          <th>1st req should come from server</th>
+          <td id='xhr1bad-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+          <td id='xhr1bad-check'></td>
+        </tr>
+        <tr>
+          <th>2nd req should come from server</th>
+          <td id='xhr2bad-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+          <td id='xhr2bad-check'></td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>
+
+<script type='text/javascript'>
+  function runTests(el1, el2, endpoint, useJson) {
+    getAjax(endpoint, function(res) {
+      document.getElementById(el1 + '-result').innerHTML = useJson ? JSON.parse(res).text : res;
+
+      if (document.getElementById(el1 + '-result').innerHTML === document.getElementById(el1 + '-result').getAttribute('data-expected')) {
+        document.getElementById(el1 + '-check').innerHTML = "✅"
+      } else {
+        document.getElementById(el1 + '-check').innerHTML = "❌"
+      }
+
+      getAjax(endpoint, function(res) {
+        document.getElementById(el2 + '-result').innerHTML = useJson ? JSON.parse(res).text : res;
+
+        if (document.getElementById(el2 + '-result').innerHTML === document.getElementById(el2 + '-result').getAttribute('data-expected')) {
+          document.getElementById(el2 + '-check').innerHTML = "✅"
+        } else {
+          document.getElementById(el2 + '-check').innerHTML = "❌"
+        }
+      });
+    })
+  }
+
+</script>
+
+<script type='text/javascript'>
+  /**
+   * - ajaxMonkeyPatch stubs XHR GET requests with a url-> payload mapping from a base64 encoded JSON object
+   *   once an endpoint is called, it is cleared from the stub
+   * - looks like:
+   * {
+   *   'http://example.org/ajax-endpoint': 'aGVsbG8gd29ybGQ='
+   * }
+  **/
+  (function(window){
+    var host = 'http://localhost:8888/'
+    // when base64 is valid stringified JSON payload:
+    // new Buffer(JSON.stringify({'http://localhost:8888/json1': JSON.stringify({text: 'from-client: I ½ ♥ 𩶘'})})).toString('base64')
+    ajaxMonkeyPatch(window, 'eyJodHRwOi8vbG9jYWxob3N0Ojg4ODgvanNvbjEiOiJ7XCJ0ZXh0XCI6XCJmcm9tLWNsaWVudDogSSDCvSDimaUg8Km2mFwifSJ9');
+    runTests('xhr1','xhr2', host + 'json1', true);
+
+    // when base64 is bad
+    restore();
+    ajaxMonkeyPatch(window, 'invalid-base64');
+    runTests('xhr1bad','xhr2bad', host + 'json1', true);
+
+    // when valid text payload
+    // new Buffer(JSON.stringify({'http://localhost:8888/text1': 'from-client: I ½ ♥ 𩶘'})).toString('base64')
+    restore();
+    ajaxMonkeyPatch(window, 'eyJodHRwOi8vbG9jYWxob3N0Ojg4ODgvdGV4dDEiOiJmcm9tLWNsaWVudDogSSDCvSDimaUg8Km2mCJ9');
+    runTests('xhr1text','xhr2text', host + 'text1', false);
+  })(window)
+
+</script>
