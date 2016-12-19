@@ -4,8 +4,8 @@
   <head>
     <meta charset = 'UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1'>
-    <!-- <script type='text/javascript' src='/monkey-patch.js'></script> -->
-    <script type='text/javascript' src='/dist/ajaxmonkeypatch.js'></script>
+    <script type='text/javascript' src='/monkey-patch.js'></script>
+    <!-- <script type='text/javascript' src='/dist/ajaxmonkeypatch.js'></script> -->
     <script type='text/javascript' src='/ajax-helper.js'></script>
     <style>
       div.container { margin: 1em; }
@@ -32,34 +32,6 @@
         <li>multi-byte characters are used in this test since there's <a href='https://coolaj86.com/articles/base64-unicode-utf-8-javascript-and-you/'>potential for loss with base64 encoding</a></li>
       </ul>
 
-      <h2>Happy path application/json</h2>
-      <table class='pure-table pure-table-bordered'>
-        <tr>
-          <th>1st req should come from stub</th>
-          <td id='xhr1-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
-          <td id='xhr1-check'></td>
-        </tr>
-        <tr>
-          <th>2nd req should come from server</th>
-          <td id='xhr2-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
-          <td id='xhr2-check'></td>
-        </tr>
-      </table>
-
-      <h2>Happy path text/plain</h2>
-      <table class='pure-table pure-table-bordered'>
-        <tr>
-          <th>1st req should come from stub</th>
-          <td id='xhr1text-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
-          <td id='xhr1text-check'></td>
-        </tr>
-        <tr>
-          <th>2nd req should come from server</th>
-          <td id='xhr2text-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
-          <td id='xhr2text-check'></td>
-        </tr>
-      </table>
-
       <h2>Bad base64</h2>
       <table class='pure-table pure-table-bordered'>
         <tr>
@@ -73,11 +45,54 @@
           <td id='xhr2bad-check'></td>
         </tr>
       </table>
+
+      <h2>Happy path <strong>application/json</strong> via onreadystatechange callback</h2>
+      <table class='pure-table pure-table-bordered'>
+        <tr>
+          <th>1st req should come from stub</th>
+          <td id='xhr1-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
+          <td id='xhr1-check'></td>
+        </tr>
+        <tr>
+          <th>2nd req should come from server</th>
+          <td id='xhr2-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+          <td id='xhr2-check'></td>
+        </tr>
+      </table>
+
+      <h2>Happy path <strong>text/plain</strong> via onreadystatechange callback</h2>
+      <table class='pure-table pure-table-bordered'>
+        <tr>
+          <th>1st req should come from stub</th>
+          <td id='xhr1text-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
+          <td id='xhr1text-check'></td>
+        </tr>
+        <tr>
+          <th>2nd req should come from server</th>
+          <td id='xhr2text-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+          <td id='xhr2text-check'></td>
+        </tr>
+      </table>
+
+      <h2>Happy path text/plain via event <strong>listeners</strong></h2>
+      <table class='pure-table pure-table-bordered'>
+        <tr>
+          <th>1st req should come from stub</th>
+          <td id='xhr1textEv-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
+          <td id='xhr1textEv-check'></td>
+        </tr>
+        <tr>
+          <th>2nd req should come from server</th>
+          <td id='xhr2textEv-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+          <td id='xhr2textEv-check'></td>
+        </tr>
+      </table>
+
     </div>
 
     <script type='text/javascript'>
-      function runTests(el1, el2, endpoint, useJson) {
-        getAjax(endpoint, function(res) {
+      function runTests(ajaxImpl, el1, el2, endpoint, useJson) {
+        ajaxImpl(endpoint, function(res) {
           document.getElementById(el1 + '-result').innerHTML = useJson ? JSON.parse(res).text : res;
 
           if (document.getElementById(el1 + '-result').innerHTML === document.getElementById(el1 + '-result').getAttribute('data-expected')) {
@@ -86,7 +101,7 @@
             document.getElementById(el1 + '-check').innerHTML = "❌"
           }
 
-          getAjax(endpoint, function(res) {
+          ajaxImpl(endpoint, function(res) {
             document.getElementById(el2 + '-result').innerHTML = useJson ? JSON.parse(res).text : res;
 
             if (document.getElementById(el2 + '-result').innerHTML === document.getElementById(el2 + '-result').getAttribute('data-expected')) {
@@ -138,20 +153,26 @@
        * }
       **/
       (function(window){
-        var host = '/'
-        // when base64 is valid stringified JSON payload:
-        ajaxMonkeyPatch(window, base64Expectations.json());
-        runTests('xhr1','xhr2', host + 'json1', true);
-
-        // when valid text payload
-        restore();
-        ajaxMonkeyPatch(window, base64Expectations.text());
-        runTests('xhr1text','xhr2text', host + 'text1', false);
+        var host = '/';
 
         // when base64 is bad
         restore();
         ajaxMonkeyPatch(window, 'invalid-base64');
-        runTests('xhr1bad','xhr2bad', host + 'json1', true);
+        runTests(getAjax, 'xhr1bad','xhr2bad', host + 'json1', true);
+
+        // when base64 is valid stringified JSON payload:
+        ajaxMonkeyPatch(window, base64Expectations.json());
+        runTests(getAjax, 'xhr1','xhr2', host + 'json1', true);
+
+        // when valid text payload
+        restore();
+        ajaxMonkeyPatch(window, base64Expectations.text());
+        runTests(getAjax, 'xhr1text','xhr2text', host + 'text1', false);
+
+        // when valid text payload using an event listener
+        restore();
+        ajaxMonkeyPatch(window, base64Expectations.text());
+        runTests(getAjaxWithEventListener, 'xhr1textEv','xhr2textEv', host + 'text1', false);
       })(window)
 
     </script>
