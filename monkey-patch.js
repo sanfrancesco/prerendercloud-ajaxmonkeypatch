@@ -1,5 +1,12 @@
 // eslint-disable-next-line no-unused-vars
 function ajaxMonkeyPatch (window, cachedResponses) {
+  if (!window.XMLHttpRequest) return;
+  if (!window.atob) return;
+  if (!window.decodeURIComponent) return;
+  if (!window.JSON) return;
+  if (!(window.location && window.location.origin)) return;
+  if (!Object.defineProperty) return;
+
   // https://coolaj86.com/articles/base64-unicode-utf-8-javascript-and-you/
   function b64ToUtf8 (b64) {
     var binstr = window.atob(b64);
@@ -10,10 +17,10 @@ function ajaxMonkeyPatch (window, cachedResponses) {
       }
       return '%' + code;
     });
-    return decodeURIComponent(escstr);
+    return window.decodeURIComponent(escstr);
   }
   try {
-    cachedResponses = JSON.parse(b64ToUtf8(cachedResponses));
+    cachedResponses = window.JSON.parse(b64ToUtf8(cachedResponses));
   } catch (error) {
     return;
   }
