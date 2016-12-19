@@ -24,7 +24,7 @@ function ajaxMonkeyPatch (window, cachedResponses) {
     this._precloudurl = url;
 
     // normalize relative paths as absolute paths on same origin (because that's what the server does)
-    if (this._precloudurl && this._precloudurl.startsWith('/')) this._precloudurl = window.location.origin + this._precloudurl;
+    if (this._precloudurl && this._precloudurl.substr(0, 1) === '/') this._precloudurl = window.location.origin + this._precloudurl;
 
     return origOpen.apply(this, arguments);
   };
@@ -33,12 +33,10 @@ function ajaxMonkeyPatch (window, cachedResponses) {
   window.XMLHttpRequest.prototype.send = function () {
     if (cachedResponses[this._precloudurl]) {
       // http://stackoverflow.com/questions/26447335/how-can-i-modify-the-xmlhttprequest-responsetext-received-by-another-function
-      Object.defineProperty(this, 'responseText', {writable: true});
-      Object.defineProperty(this, 'readyState', {writable: true});
-      Object.defineProperty(this, 'status', {writable: true});
-      this.readyState = 4;
-      this.status = 200;
-      this.responseText = cachedResponses[this._precloudurl];
+      var response = cachedResponses[this._precloudurl];
+      Object.defineProperty(this, 'responseText', {get: function () { return response; }});
+      Object.defineProperty(this, 'readyState', {get: function () { return 4; }});
+      Object.defineProperty(this, 'status', {get: function () { return 200; }});
       delete cachedResponses[this._precloudurl];
       return this.onreadystatechange();
     } else {
