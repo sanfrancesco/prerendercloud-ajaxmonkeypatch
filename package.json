@@ -8,11 +8,19 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "start": "node index.js",
+    "lint": "./node_modules/semistandard/bin/cmd.js ./monkey-patch.js",
+    "build": "npm run lint && ./node_modules/babel-cli/bin/babel.js --no-comments monkey-patch.js --compact='true' --out-file dist/ajaxmonkeypatch.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "express": "^4.14.0"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.18.0",
+    "babel-preset-babili": "0.0.9",
+    "babel-preset-env": "^1.1.4",
+    "semistandard": "^9.2.1"
   }
 }
