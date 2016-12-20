@@ -7,87 +7,95 @@
     <script type='text/javascript' src='/monkey-patch.js'></script>
     <!-- <script type='text/javascript' src='/dist/ajaxmonkeypatch.js'></script> -->
     <script type='text/javascript' src='/ajax-helper.js'></script>
-    <style>
-      div.container { margin: 1em; }
-      table th,td { text-align: left; }
-      img.logo { width: 75px; }
-    </style>
     <link rel='stylesheet' href='https://unpkg.com/purecss@0.6.1/build/pure-min.css'>
+    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/flexboxgrid/6.3.1/flexboxgrid.min.css'>
+    <style>
+      div.container {border: 1px solid #000; margin: 0 auto;}
+      h1 {margin: 0 0 20px 90px; font-size: 1.5em; }
+      img.logo { width: 75px; float: left; }
+      h2 { text-align: right; font-size: 1em; }
+      table { margin-left: auto; }
+      table th,td { text-align: left; }
+    </style>
     <title>Prerender.cloud AJAX monkey patch test</title>
   </head>
   <body>
-    <div class='container'>
-      <img class='logo' src='/prerender-cloud-logo.svg' />
-      <h1><a href='https://www.prerender.cloud/' target='_blank'>Prerender.cloud</a> AJAX monkey patch test</h1>
-      <p>This is a test for an XHR and window.fetch monkey patch included by default from <a href='https://www.prerender.cloud/' target='_blank'>prerender.cloud</a>. It should be run against all major browsers.</p>
-      <p>
-        The monkey patch stubs GET requests with a url->payload mapping from a base64 encoded JSON object. Once an endpoint is called, it is cleared from the stub/patch.
-      </p>
-      <div>
-        <p>The data structure looks like:</p>
-        <pre><code>{'http://example.org/ajax-endpoint': 'aGVsbG8gd29ybGQ='}</code></pre>
+    <div class='container row around-xs'>
+      <div class='col-xs-12 col-lg-6'>
+        <img class='logo' src='/prerender-cloud-logo.svg' />
+        <h1><a href='https://www.prerender.cloud/' target='_blank'>Prerender.cloud</a> AJAX monkey patch test</h1>
+        <p>This is a test for an XHR and window.fetch monkey patch included by default from <a href='https://www.prerender.cloud/' target='_blank'>prerender.cloud</a>. It should be run against all major browsers.</p>
+        <p>
+          The monkey patch stubs GET requests with a url->payload mapping from a base64 encoded JSON object. Once an endpoint is called, it is cleared from the stub/patch.
+        </p>
+        <div>
+          <p>The data structure looks like:</p>
+          <pre><code>{'http://example.org/ajax-endpoint': 'aGVsbG8gd29ybGQ='}</code></pre>
+        </div>
+        <ul>
+          <li>base64 is used because escaping JSON payloads in the DOM is confusing and hard to understand after the fact</li>
+          <li>multi-byte characters are used in this test since there's <a href='https://coolaj86.com/articles/base64-unicode-utf-8-javascript-and-you/'>potential for loss with base64 encoding</a></li>
+        </ul>
       </div>
-      <ul>
-        <li>base64 is used because escaping JSON payloads in the DOM is confusing and hard to understand after the fact</li>
-        <li>multi-byte characters are used in this test since there's <a href='https://coolaj86.com/articles/base64-unicode-utf-8-javascript-and-you/'>potential for loss with base64 encoding</a></li>
-      </ul>
+      <div class='col-xs-12 col-lg-6'>
 
-      <h2>Bad base64</h2>
-      <table class='pure-table pure-table-bordered'>
-        <tr>
-          <th>1st req should come from server</th>
-          <td id='xhr1bad-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
-          <td id='xhr1bad-check'></td>
-        </tr>
-        <tr>
-          <th>2nd req should come from server</th>
-          <td id='xhr2bad-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
-          <td id='xhr2bad-check'></td>
-        </tr>
-      </table>
+        <h2>Bad base64</h2>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <th>1st req should come from server</th>
+            <td id='xhr1bad-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+            <td id='xhr1bad-check'></td>
+          </tr>
+          <tr>
+            <th>2nd req should come from server</th>
+            <td id='xhr2bad-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+            <td id='xhr2bad-check'></td>
+          </tr>
+        </table>
 
-      <h2>Happy path <strong>application/json</strong> via onreadystatechange callback</h2>
-      <table class='pure-table pure-table-bordered'>
-        <tr>
-          <th>1st req should come from stub</th>
-          <td id='xhr1-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
-          <td id='xhr1-check'></td>
-        </tr>
-        <tr>
-          <th>2nd req should come from server</th>
-          <td id='xhr2-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
-          <td id='xhr2-check'></td>
-        </tr>
-      </table>
+        <h2>Happy path <strong>application/json</strong> via onreadystatechange callback</h2>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <th>1st req should come from stub</th>
+            <td id='xhr1-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
+            <td id='xhr1-check'></td>
+          </tr>
+          <tr>
+            <th>2nd req should come from server</th>
+            <td id='xhr2-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+            <td id='xhr2-check'></td>
+          </tr>
+        </table>
 
-      <h2>Happy path <strong>text/plain</strong> via onreadystatechange callback</h2>
-      <table class='pure-table pure-table-bordered'>
-        <tr>
-          <th>1st req should come from stub</th>
-          <td id='xhr1text-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
-          <td id='xhr1text-check'></td>
-        </tr>
-        <tr>
-          <th>2nd req should come from server</th>
-          <td id='xhr2text-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
-          <td id='xhr2text-check'></td>
-        </tr>
-      </table>
+        <h2>Happy path <strong>text/plain</strong> via onreadystatechange callback</h2>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <th>1st req should come from stub</th>
+            <td id='xhr1text-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
+            <td id='xhr1text-check'></td>
+          </tr>
+          <tr>
+            <th>2nd req should come from server</th>
+            <td id='xhr2text-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+            <td id='xhr2text-check'></td>
+          </tr>
+        </table>
 
-      <h2>Happy path text/plain via event <strong>listeners</strong></h2>
-      <table class='pure-table pure-table-bordered'>
-        <tr>
-          <th>1st req should come from stub</th>
-          <td id='xhr1textEv-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
-          <td id='xhr1textEv-check'></td>
-        </tr>
-        <tr>
-          <th>2nd req should come from server</th>
-          <td id='xhr2textEv-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
-          <td id='xhr2textEv-check'></td>
-        </tr>
-      </table>
+        <h2>Happy path text/plain via event <strong>listeners</strong></h2>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <th>1st req should come from stub</th>
+            <td id='xhr1textEv-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
+            <td id='xhr1textEv-check'></td>
+          </tr>
+          <tr>
+            <th>2nd req should come from server</th>
+            <td id='xhr2textEv-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+            <td id='xhr2textEv-check'></td>
+          </tr>
+        </table>
 
+      </div>
     </div>
 
     <script type='text/javascript'>
