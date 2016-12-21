@@ -1,5 +1,6 @@
 var ajaxImpls = {
   onReadyStatechange: ajaxOnReadyStateChange,
   listener: ajaxListener,
-  angular: ajaxAngular
+  angular: ajaxAngular,
+  reqwest: reqwest
 }
