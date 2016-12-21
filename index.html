@@ -133,10 +133,32 @@
           </tr>
         </table>
 
+        <h2>Happy path text/plain POST via <strong>onreadystatechange callback</strong></h2>
+        <p>verifies we're passing arguments to original send method</p>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <th>the server just echos, so if it returns expected value, our args were sent</th>
+            <td id='xhr1PostTest-result' data-expected='{"working":"true"}'></td>
+            <td id='xhr1PostTest-check'></td>
+          </tr>
+        </table>
+
+
       </div>
     </div>
 
     <script type='text/javascript'>
+      function runPostTest(ajaxImpl, el1, endpoint) {
+        ajaxImpl(endpoint, function(res) {
+          document.getElementById(el1 + '-result').innerHTML = res;
+
+          if (document.getElementById(el1 + '-result').innerHTML === document.getElementById(el1 + '-result').getAttribute('data-expected')) {
+            document.getElementById(el1 + '-check').innerHTML = "✅"
+          } else {
+            document.getElementById(el1 + '-check').innerHTML = "❌"
+          }
+        })
+      }
       function runTests(ajaxImpl, el1, el2, endpoint, useJson) {
         ajaxImpl(endpoint, function(res) {
           document.getElementById(el1 + '-result').innerHTML = useJson ? JSON.parse(res).text : res;
@@ -229,6 +251,10 @@
         restore();
         ajaxMonkeyPatch(window, base64Expectations.text());
         runTests(ajaxImpls.reqwest, 'xhr1textReqwest','xhr2textReqwest', host + 'text1', false);
+
+        // valid post request
+        restore();
+        runPostTest(ajaxImpls.onReadyStatechangePost.bind(undefined, 'working=true'), 'xhr1PostTest', 'echo');
       })(window)
 
     </script>

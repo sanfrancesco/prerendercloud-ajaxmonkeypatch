@@ -1,5 +1,8 @@
-var express = require('express')
-  , app = express();
+const express = require('express')
+  , app = express()
+  , bodyParser = require('body-parser');
+
+app.use(bodyParser.urlencoded({}));
 
 
 // https://coolaj86.com/articles/base64-unicode-utf-8-javascript-and-you/
@@ -9,6 +12,9 @@ app.get('/json1', (req, res) => {
 });
 app.get('/text1', (req, res) => {
   res.send('from-server: I ½ ♥ 𩶘');
+});
+app.post('/echo', (req, res) => {
+  res.json(req.body);
 });
 
 app.use(express.static('.'))

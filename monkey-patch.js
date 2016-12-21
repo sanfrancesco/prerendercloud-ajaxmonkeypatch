@@ -41,6 +41,7 @@ function ajaxMonkeyPatch (window, cachedResponses) {
   var origOpen = window.XMLHttpRequest.prototype.open;
   window.XMLHttpRequest.prototype.open = function (method, url) {
     this._precloudurl = url;
+    this._precloudMethod = method;
 
     // normalize relative paths as absolute paths on same origin (because that's what the server does)
     if (this._precloudurl && this._precloudurl.substr(0, 1) === '/') this._precloudurl = window.location.origin + this._precloudurl;
@@ -50,7 +51,13 @@ function ajaxMonkeyPatch (window, cachedResponses) {
 
   // immediately call the callbacks/listeners on send with the stubbed results
   var origSend = window.XMLHttpRequest.prototype.send;
-  window.XMLHttpRequest.prototype.send = function (d) {
+  window.XMLHttpRequest.prototype.send = function () {
+    // bail out for non GET method
+    if (this._precloudMethod && !this._precloudMethod.match(/get/i)) return origSend.apply(this, arguments);
+
+    // bail out right away if we don't have the URL
+    if (!cachedResponses[this._precloudurl]) return origSend.apply(this, arguments);
+
     var deferredHandler = function () {
       if (cachedResponses[this._precloudurl]) {
         var contentType = cachedResponses[this._precloudurl][0];
@@ -87,11 +94,14 @@ function ajaxMonkeyPatch (window, cachedResponses) {
       } else {
         return origSend.apply(this, arguments);
       }
-    }.bind(this);
+    };
+
+    // ensures all arguments from original call to `xhr.send` are available to deferred func
+    deferredHandler = deferredHandler.apply.bind(deferredHandler, this, arguments);
 
     // ideally we'd call the xhr handlers immediately (to minimize screen repainting)
     // but the https://github.com/ded/reqwest/ lib calls `xhr.send` before the context for its closure is set
-    // in other words, this #send must return before the the handlers can be called
+    // in other words, this `xhr.send` must return before the the handlers can be called
     // alternatively, i would have preferred to detect reqwuest through a private var or artifact left over but couldn't find one
     // requestAnimationFrame gets called sooner than setTimeout
     if (window.requestAnimationFrame) return window.requestAnimationFrame(deferredHandler);
