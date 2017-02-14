@@ -4,7 +4,7 @@
   <head>
     <meta charset = 'UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1'>
-    <script type='text/javascript' src='/monkey-patch.js'></script>
+    <script type='text/javascript' src='/ajax-preload.js'></script>
     <!-- <script type='text/javascript' src='/dist/ajaxmonkeypatch.js'></script> -->
     <!-- <script type='text/javascript' src='/ajax-helper.js'></script> -->
 
@@ -225,31 +225,31 @@
 
         // when base64 is bad
         restore();
-        ajaxMonkeyPatch(window, 'invalid-base64');
+        ajaxMonkeyPatchForPreload(window, 'invalid-base64');
         runTests(ajaxImpls.onReadyStatechange, 'xhr1bad','xhr2bad', host + 'json1', true);
 
         // when base64 is valid stringified JSON payload:
-        ajaxMonkeyPatch(window, base64Expectations.json());
+        ajaxMonkeyPatchForPreload(window, base64Expectations.json());
         runTests(ajaxImpls.onReadyStatechange, 'xhr1','xhr2', host + 'json1', true);
 
         // when valid text payload
         restore();
-        ajaxMonkeyPatch(window, base64Expectations.text());
+        ajaxMonkeyPatchForPreload(window, base64Expectations.text());
         runTests(ajaxImpls.onReadyStatechange, 'xhr1text','xhr2text', host + 'text1', false);
 
         // when valid text payload using an event listener
         restore();
-        ajaxMonkeyPatch(window, base64Expectations.text());
+        ajaxMonkeyPatchForPreload(window, base64Expectations.text());
         runTests(ajaxImpls.listener, 'xhr1textEv','xhr2textEv', host + 'text1', false);
 
         // when valid text payload using angular's helper
         restore();
-        ajaxMonkeyPatch(window, base64Expectations.text());
+        ajaxMonkeyPatchForPreload(window, base64Expectations.text());
         runTests(ajaxImpls.angular, 'xhr1textAngular','xhr2textAngular', host + 'text1', false);
 
         // when valid text payload using angular's helper
         restore();
-        ajaxMonkeyPatch(window, base64Expectations.text());
+        ajaxMonkeyPatchForPreload(window, base64Expectations.text());
         runTests(ajaxImpls.reqwest, 'xhr1textReqwest','xhr2textReqwest', host + 'text1', false);
 
         // valid post request

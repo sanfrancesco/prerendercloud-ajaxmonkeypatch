@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-unused-vars
-function ajaxMonkeyPatch (window, cachedResponses) {
+function ajaxMonkeyPatchForPreload (window, cachedResponses) {
   if (!window.XMLHttpRequest) return;
   if (!window.atob) return;
   if (!window.decodeURIComponent) return;
