@@ -9,8 +9,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "lint": "./node_modules/semistandard/bin/cmd.js ./monkey-patch.js",
-    "build": "npm run lint && ./node_modules/babel-cli/bin/babel.js --no-comments ajax-preload.js --compact='true' --out-file dist/ajax-preload.js"
+    "lint": "./node_modules/semistandard/bin/cmd.js ./ajax-preload.js ./ajax-bypass.js",
+    "build": "npm run lint && ./node_modules/babel-cli/bin/babel.js --no-comments ajax-preload.js --compact='true' --out-file dist/ajax-preload.js && ./node_modules/babel-cli/bin/babel.js --no-comments ajax-bypass.js --compact='true' --out-file dist/ajax-bypass.js"
   },
   "author": "",
   "license": "ISC",
