@@ -99,11 +99,14 @@ function ajaxMonkeyPatchForPreload (window, cachedResponses) {
     // ensures all arguments from original call to `xhr.send` are available to deferred func
     deferredHandler = deferredHandler.apply.bind(deferredHandler, this, arguments);
 
-    // ideally we'd call the xhr handlers immediately (to minimize screen repainting)
-    // but the https://github.com/ded/reqwest/ lib calls `xhr.send` before the context for its closure is set
-    // in other words, this `xhr.send` must return before the the handlers can be called
-    // alternatively, i would have preferred to detect reqwuest through a private var or artifact left over but couldn't find one
-    // requestAnimationFrame gets called sooner than setTimeout
+    // 1. in theory, ideally, we'd call the xhr handlers immediately (to minimize/prevent
+    //    screen repainting by forcing a synchronous request before a render cycle could happen)
+    //    but the https://github.com/ded/reqwest/ lib calls `xhr.send` before the context for its closure is set
+    //    in other words, this `xhr.send` must return before the XHR handlers can be called
+    //    (they readystatechange handler will just return/exit unless it has access to what was returned from xhr.send, see https://github.com/ded/reqwest/issues/107 for more info)
+    // 2. alternatively, i would have preferred to detect reqwest through a private var or artifact left over but couldn't find one
+    // 3. sadly, even if we could call the handler immediately, in my tests, it didn't seem to prevent React.jse double rendering issues
+    // 4. requestAnimationFrame gets called sooner than setTimeout
     if (window.requestAnimationFrame) return window.requestAnimationFrame(deferredHandler);
     return setTimeout(deferredHandler, 0);
   };
