@@ -1,0 +1,264 @@
+<!DOCTYPE HTML>
+
+<html>
+  <head>
+    <meta charset = 'UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <script type='text/javascript' src='/ajax-preload.js'></script>
+    <script type='text/javascript' src='/ajax-bypass.js'></script>
+    <!-- <script type='text/javascript' src='/dist/ajax-preload.js'></script> -->
+    <!-- <script type='text/javascript' src='/dist/ajax-bypass.js'></script> -->
+    <!-- <script type='text/javascript' src='/ajax-helper.js'></script> -->
+
+    <script type='text/javascript' src='/ajaximpls/onreadystatechange.js'></script>
+    <script type='text/javascript' src='/ajaximpls/listener.js'></script>
+    <script type='text/javascript' src='/ajaximpls/angular.js'></script>
+    <script type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/reqwest/2.0.5/reqwest.js'></script>
+    <script type='text/javascript' src='/ajaximpls/all.js'></script>
+
+    <link rel='stylesheet' href='https://unpkg.com/purecss@0.6.1/build/pure-min.css'>
+    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/flexboxgrid/6.3.1/flexboxgrid.min.css'>
+    <style>
+      div.container {margin: 1.3em;}
+      h1 {margin: 0 0 20px 90px; font-size: 1.5em; }
+      img.logo { width: 75px; float: left; }
+      h2 { text-align: right; font-size: 1em; }
+      p { text-align: right; }
+      table { margin-left: auto; }
+      table th,td { text-align: left; }
+    </style>
+    <title>Prerender.cloud AJAX monkey patch test</title>
+  </head>
+  <body>
+    <div class='container row around-xs'>
+      <div class='col-xs-12 col-lg-6'>
+        <a href="/"><img class='logo' src='/prerender-cloud-logo.svg' /></a>
+        <h1><a href='https://www.prerender.cloud/' target='_blank'>Prerender.cloud</a> AJAX monkey patch test</h1>
+        <p>This is a test for an XHR and window.fetch monkey patch included by default from <a href='https://www.prerender.cloud/' target='_blank'>prerender.cloud</a>. It should be run against all major browsers.</p>
+        <p>
+          The monkey patch stubs GET requests with a url->payload mapping from a base64 encoded JSON object. Once an endpoint is called, it is cleared from the stub/patch.
+        </p>
+        <div>
+          <p>The data structure looks like:</p>
+          <pre><code>{'http://example.org/ajax-endpoint': 'aGVsbG8gd29ybGQ='}</code></pre>
+        </div>
+        <ul>
+          <li>base64 is used because escaping JSON payloads in the DOM is confusing and hard to understand after the fact</li>
+          <li>multi-byte characters are used in this test since there's <a href='https://coolaj86.com/articles/base64-unicode-utf-8-javascript-and-you/'>potential for loss with base64 encoding</a></li>
+        </ul>
+      </div>
+      <div class='col-xs-12 col-lg-6'>
+
+        <h2>Bad base64</h2>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <th>1st req should come from server</th>
+            <td id='xhr1bad-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+            <td id='xhr1bad-check'></td>
+          </tr>
+          <tr>
+            <th>2nd req should come from server</th>
+            <td id='xhr2bad-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+            <td id='xhr2bad-check'></td>
+          </tr>
+        </table>
+
+        <h2>Happy path <strong>application/json</strong> via onreadystatechange callback</h2>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <th>1st req should come from stub</th>
+            <td id='xhr1-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
+            <td id='xhr1-check'></td>
+          </tr>
+          <tr>
+            <th>2nd req should come from server</th>
+            <td id='xhr2-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+            <td id='xhr2-check'></td>
+          </tr>
+        </table>
+
+        <h2>Happy path <strong>text/plain</strong> via onreadystatechange callback</h2>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <th>1st req should come from stub</th>
+            <td id='xhr1text-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
+            <td id='xhr1text-check'></td>
+          </tr>
+          <tr>
+            <th>2nd req should come from server</th>
+            <td id='xhr2text-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+            <td id='xhr2text-check'></td>
+          </tr>
+        </table>
+
+        <h2>Happy path text/plain via event <strong>listeners</strong></h2>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <th>1st req should come from stub</th>
+            <td id='xhr1textEv-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
+            <td id='xhr1textEv-check'></td>
+          </tr>
+          <tr>
+            <th>2nd req should come from server</th>
+            <td id='xhr2textEv-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+            <td id='xhr2textEv-check'></td>
+          </tr>
+        </table>
+
+        <h2>Happy path text/plain via <strong>angular helper</strong></h2>
+        <p>fails if the onload or onreadystatechange handlers are called twice</p>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <th>1st req should come from stub</th>
+            <td id='xhr1textAngular-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
+            <td id='xhr1textAngular-check'></td>
+          </tr>
+          <tr>
+            <th>2nd req should come from server</th>
+            <td id='xhr2textAngular-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+            <td id='xhr2textAngular-check'></td>
+          </tr>
+        </table>
+
+        <h2>Happy path text/plain via <strong>reqwest helper</strong></h2>
+        <p>relies on content-type header, and deferred execution of xhr.send</p>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <th>1st req should come from stub</th>
+            <td id='xhr1textReqwest-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
+            <td id='xhr1textReqwest-check'></td>
+          </tr>
+          <tr>
+            <th>2nd req should come from server</th>
+            <td id='xhr2textReqwest-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+            <td id='xhr2textReqwest-check'></td>
+          </tr>
+        </table>
+
+        <h2>Happy path text/plain POST via <strong>onreadystatechange callback</strong></h2>
+        <p>verifies we're passing arguments to original send method</p>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <th>the server just echos, so if it returns expected value, our args were sent</th>
+            <td id='xhr1PostTest-result' data-expected='{"working":"true"}'></td>
+            <td id='xhr1PostTest-check'></td>
+          </tr>
+        </table>
+
+
+      </div>
+    </div>
+
+    <script type='text/javascript'>
+      function runPostTest(ajaxImpl, el1, endpoint) {
+        ajaxImpl(endpoint, function(res) {
+          document.getElementById(el1 + '-result').innerHTML = res;
+
+          if (document.getElementById(el1 + '-result').innerHTML === document.getElementById(el1 + '-result').getAttribute('data-expected')) {
+            document.getElementById(el1 + '-check').innerHTML = "✅"
+          } else {
+            document.getElementById(el1 + '-check').innerHTML = "❌"
+          }
+        })
+      }
+      function runTests(ajaxImpl, el1, el2, endpoint, useJson) {
+        ajaxImpl(endpoint, function(res) {
+          document.getElementById(el1 + '-result').innerHTML = useJson ? JSON.parse(res).text : res;
+
+          if (document.getElementById(el1 + '-result').innerHTML === document.getElementById(el1 + '-result').getAttribute('data-expected')) {
+            document.getElementById(el1 + '-check').innerHTML = "✅"
+          } else {
+            document.getElementById(el1 + '-check').innerHTML = "❌"
+          }
+
+          ajaxImpl(endpoint, function(res) {
+            document.getElementById(el2 + '-result').innerHTML = useJson ? JSON.parse(res).text : res;
+
+            if (document.getElementById(el2 + '-result').innerHTML === document.getElementById(el2 + '-result').getAttribute('data-expected')) {
+              document.getElementById(el2 + '-check').innerHTML = "✅"
+            } else {
+              document.getElementById(el2 + '-check').innerHTML = "❌"
+            }
+          });
+        })
+      }
+
+    </script>
+
+    <script type='text/javascript'>
+
+      var originalXMLHttpRequestOpen = XMLHttpRequest.prototype.open;
+      var originalXMLHttpRequestSend = XMLHttpRequest.prototype.send;
+
+      function restore() {
+        XMLHttpRequest.prototype.open = originalXMLHttpRequestOpen;
+        XMLHttpRequest.prototype.send = originalXMLHttpRequestSend;
+      }
+
+      var base64Expectations = {
+        dev: {
+          // new Buffer(JSON.stringify({'http://localhost:8888/json1': ['application/json', JSON.stringify({text: 'from-client: I ½ ♥ 𩶘'})]})).toString('base64')
+          json: 'eyJodHRwOi8vbG9jYWxob3N0Ojg4ODgvanNvbjEiOlsiYXBwbGljYXRpb24vanNvbiIsIntcInRleHRcIjpcImZyb20tY2xpZW50OiBJIMK9IOKZpSDwqbaYXCJ9Il19',
+          // new Buffer(JSON.stringify({'http://localhost:8888/text1': ['text/plain', 'from-client: I ½ ♥ 𩶘']})).toString('base64')
+          text: 'eyJodHRwOi8vbG9jYWxob3N0Ojg4ODgvdGV4dDEiOlsidGV4dC9wbGFpbiIsImZyb20tY2xpZW50OiBJIMK9IOKZpSDwqbaYIl19'
+        },
+        prod: {
+          // new Buffer(JSON.stringify({'https://prerendercloud-ajaxmonkeypatch.herokuapp.com/json1': ['application/json', JSON.stringify({text: 'from-client: I ½ ♥ 𩶘'})]})).toString('base64')
+          json: 'eyJodHRwczovL3ByZXJlbmRlcmNsb3VkLWFqYXhtb25rZXlwYXRjaC5oZXJva3VhcHAuY29tL2pzb24xIjpbImFwcGxpY2F0aW9uL2pzb24iLCJ7XCJ0ZXh0XCI6XCJmcm9tLWNsaWVudDogSSDCvSDimaUg8Km2mFwifSJdfQ==',
+          // new Buffer(JSON.stringify({'https://prerendercloud-ajaxmonkeypatch.herokuapp.com/text1': ['text/plain', 'from-client: I ½ ♥ 𩶘']})).toString('base64')
+          text: 'eyJodHRwczovL3ByZXJlbmRlcmNsb3VkLWFqYXhtb25rZXlwYXRjaC5oZXJva3VhcHAuY29tL3RleHQxIjpbInRleHQvcGxhaW4iLCJmcm9tLWNsaWVudDogSSDCvSDimaUg8Km2mCJdfQ=='
+        }
+      };
+      var getEnv = function() { return window.location.origin.match(/localhost/) ? 'dev' : 'prod'; };
+      var getField = function(field) { return base64Expectations[getEnv()][field]; };
+      base64Expectations.json = function() { return getField('json'); };
+      base64Expectations.text = function() { return getField('text'); };
+
+      /**
+       * - ajaxMonkeyPatch stubs XHR GET requests with a url-> payload mapping from a base64 encoded JSON object
+       *   once an endpoint is called, it is cleared from the stub
+       * - looks like:
+       * {
+       *   'http://example.org/ajax-endpoint': 'aGVsbG8gd29ybGQ='
+       * }
+      **/
+      (function(window){
+        var host = '/';
+
+        // when base64 is bad
+        restore();
+        ajaxMonkeyPatchForPreload(window, 'invalid-base64');
+        runTests(ajaxImpls.onReadyStatechange, 'xhr1bad','xhr2bad', host + 'json1', true);
+
+        // when base64 is valid stringified JSON payload:
+        ajaxMonkeyPatchForPreload(window, base64Expectations.json());
+        runTests(ajaxImpls.onReadyStatechange, 'xhr1','xhr2', host + 'json1', true);
+
+        // when valid text payload
+        restore();
+        ajaxMonkeyPatchForPreload(window, base64Expectations.text());
+        runTests(ajaxImpls.onReadyStatechange, 'xhr1text','xhr2text', host + 'text1', false);
+
+        // when valid text payload using an event listener
+        restore();
+        ajaxMonkeyPatchForPreload(window, base64Expectations.text());
+        runTests(ajaxImpls.listener, 'xhr1textEv','xhr2textEv', host + 'text1', false);
+
+        // when valid text payload using angular's helper
+        restore();
+        ajaxMonkeyPatchForPreload(window, base64Expectations.text());
+        runTests(ajaxImpls.angular, 'xhr1textAngular','xhr2textAngular', host + 'text1', false);
+
+        // when valid text payload using angular's helper
+        restore();
+        ajaxMonkeyPatchForPreload(window, base64Expectations.text());
+        runTests(ajaxImpls.reqwest, 'xhr1textReqwest','xhr2textReqwest', host + 'text1', false);
+
+        // valid post request
+        restore();
+        runPostTest(ajaxImpls.onReadyStatechangePost.bind(undefined, 'working=true'), 'xhr1PostTest', 'echo');
+      })(window)
+
+    </script>
+  </body>
+</html>

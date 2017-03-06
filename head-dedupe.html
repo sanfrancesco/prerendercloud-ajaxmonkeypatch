@@ -1,0 +1,220 @@
+<!DOCTYPE HTML>
+
+<html>
+  <head>
+    <meta charset = 'UTF-8' />
+
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+
+    <script type='text/javascript' src='/head-dedupe.js'></script>
+
+    <!-- put this meta node in the HTML just as it would be from a server-side rendered page -->
+    <meta some-attr="some-value" name="testing-dedupe">
+
+
+    <link rel='stylesheet' href='https://unpkg.com/purecss@0.6.1/build/pure-min.css'>
+    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/flexboxgrid/6.3.1/flexboxgrid.min.css'>
+    <style>
+      div.container {margin: 1.3em;}
+      h1 {margin: 0 0 20px 90px; font-size: 1.5em; }
+      img.logo { width: 75px; float: left; }
+      h2 { text-align: right; font-size: 1em; }
+      p { text-align: right; }
+      table { margin-left: auto; }
+      table th,td { text-align: left; }
+    </style>
+    <title>Prerender.cloud Head DeDupe test</title>
+  </head>
+  <body>
+    <div class='container row around-xs'>
+      <div class='col-xs-12 col-lg-6'>
+        <a href="/"><img class='logo' src='/prerender-cloud-logo.svg' /></a>
+        <h1><a href='https://www.prerender.cloud/' target='_blank'>Prerender.cloud</a> <code>&lt;Head&gt;</code> DeDupe Test</h1>
+        <p>This is a test for monkey patches to appendChild and insertBefore, included by default, from <a href='https://www.prerender.cloud/' target='_blank'>prerender.cloud</a>. It should be run against all major browsers.</p>
+        <p>Its purpose is to prevent SPA frameworks from inserting HTML nodes (within <code>&lt;head&gt;</code> only) that were previously rendered on the server. react-helmet, for example does not need this monkey patch, but many other frameworks do.</p>
+      </div>
+      <div class='col-xs-12 col-lg-6'>
+        <h2>appendChild</h2>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <td>when exists in DOM before client render, number of meta elements created in HEAD via <strong>appendChild</strong> should be 1</td>
+            <td id='append-child-result' data-expected='1'></td>
+            <td id='append-child-check'></td>
+          </tr>
+          <tr>
+            <td>when not in DOM before client render, number of meta elements created in HEAD via <strong>appendChild</strong> should be 1</td>
+            <td id='append-child-result-2' data-expected='1'></td>
+            <td id='append-child-check-2'></td>
+          </tr>
+          <tr>
+            <td>when not in DOM before client render, number of p elements created in BODY via <strong>appendChild</strong> should be 2</td>
+            <td id='append-child-result-3' data-expected='2'></td>
+            <td id='append-child-check-3'></td>
+          </tr>
+        </table>
+        <h2>insertBefore</h2>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <td>when exists in DOM before client render, number of meta elements created via <strong>insertBefore</strong> should be 1</td>
+            <td id='insert-before-result' data-expected='1'></td>
+            <td id='insert-before-check'></td>
+          </tr>
+          <tr>
+            <td>when not in DOM before client render, number of meta elements created via <strong>insertBefore</strong> should be 1</td>
+            <td id='insert-before-result-2' data-expected='1'></td>
+            <td id='insert-before-check-2'></td>
+          </tr>
+          <tr>
+            <td>when not in DOM before client render, number of p elements created in BODY via <strong>insertBefore</strong> should be 2</td>
+            <td id='insert-before-result-3' data-expected='2'></td>
+            <td id='insert-before-check-3'></td>
+          </tr>
+        </table>
+
+      </div>
+
+    <script type='text/javascript'>
+      // install monkeypatch (uncomment this to see the tests fail)
+      insertAppendMonkeyPatchForHeadDeDupe(window);
+
+      function reportResult(checkId, resultId, actualResult) {
+        document.getElementById(resultId).innerHTML = actualResult;
+        if (document.getElementById(resultId).innerHTML === document.getElementById(resultId).getAttribute('data-expected')) {
+          document.getElementById(checkId).innerHTML = "✅"
+        } else {
+          document.getElementById(checkId).innerHTML = "❌"
+        }
+      }
+    </script>
+
+    <script type='text/javascript'>
+      // create an element
+      var someElementWeAreGoingToInsertManyTimes = document.createElement('meta');
+      someElementWeAreGoingToInsertManyTimes.setAttribute('some-attr', 'some-value');
+      someElementWeAreGoingToInsertManyTimes.setAttribute('name', 'testing-dedupe');
+
+      // find <head></head>
+      var head = document.getElementsByTagName('head')[0];
+
+      // append it to head
+      head.appendChild(someElementWeAreGoingToInsertManyTimes.cloneNode());
+      head.appendChild(someElementWeAreGoingToInsertManyTimes.cloneNode());
+
+      // verify it
+      var appendCount = 0;
+      Array.from(head.children).forEach(function(child) {
+        if (child.outerHTML === someElementWeAreGoingToInsertManyTimes.outerHTML) {
+          appendCount += 1;
+        }
+      })
+      // report it
+      reportResult('append-child-check', 'append-child-result', appendCount)
+
+      // TEST 2 (for appendChild)
+
+      // create something to verify we can still append unique
+      var uniqueElement = document.createElement('meta')
+      uniqueElement.setAttribute('some-attr', 'some-value-2');
+      uniqueElement.setAttribute('name', 'testing-dedupe-2');
+      // append it
+      head.appendChild(uniqueElement.cloneNode());
+      // verify it
+      var appendCount2 = 0;
+      Array.from(head.children).forEach(function(child) {
+        if (child.outerHTML === uniqueElement.outerHTML) {
+          appendCount2 += 1;
+        }
+      })
+      // report it
+      reportResult('append-child-check-2', 'append-child-result-2', appendCount2)
+
+
+      // TEST 3 (for appendChild)
+      var body = document.getElementsByTagName('body')[0];
+      // create something to verify we can still append unique
+      var uniqueElement = document.createElement('p')
+      uniqueElement.setAttribute('some-attr', 'some-value-3');
+      uniqueElement.setAttribute('name', 'testing-dedupe-3');
+      // append it
+      body.appendChild(uniqueElement.cloneNode());
+      body.appendChild(uniqueElement.cloneNode());
+      // verify it
+      var appendCount3 = 0;
+      Array.from(body.children).forEach(function(child) {
+        if (child.outerHTML === uniqueElement.outerHTML) {
+          appendCount3 += 1;
+        }
+      })
+      // report it
+      reportResult('append-child-check-3', 'append-child-result-3', appendCount3)
+
+    </script>
+
+    <script type='text/javascript'>
+      // create an element
+      var someElementWeAreGoingToInsertManyTimes = document.createElement('meta');
+      someElementWeAreGoingToInsertManyTimes.setAttribute('some-attr', 'some-value');
+      someElementWeAreGoingToInsertManyTimes.setAttribute('name', 'testing-dedupe');
+
+      // find fist <meta></meta>
+      var meta = document.getElementsByTagName('meta')[0];
+
+      // append it to head
+      head.insertBefore(someElementWeAreGoingToInsertManyTimes.cloneNode(), meta);
+      head.insertBefore(someElementWeAreGoingToInsertManyTimes.cloneNode(), meta);
+
+      // find <head></head>
+      var head = document.getElementsByTagName('head')[0];
+      var appendCount = 0;
+      Array.from(head.children).forEach(function(child) {
+        if (child.outerHTML === someElementWeAreGoingToInsertManyTimes.outerHTML) {
+          appendCount += 1;
+        }
+      })
+
+      // report it
+      reportResult('insert-before-check', 'insert-before-result', appendCount)
+
+      // TEST 2 (for insertBefore)
+
+      // create something to verify we can still append unique
+      var uniqueElement = document.createElement('meta')
+      uniqueElement.setAttribute('some-attr', 'insert-before-some-value-2');
+      uniqueElement.setAttribute('name', 'insert-before-testing-dedupe-2');
+      // append it
+      head.insertBefore(uniqueElement.cloneNode(), meta);
+      // verify it
+      var appendCount2 = 0;
+      Array.from(head.children).forEach(function(child) {
+        if (child.outerHTML === uniqueElement.outerHTML) {
+          appendCount2 += 1;
+        }
+      })
+      // report it
+      reportResult('insert-before-check-2', 'insert-before-result-2', appendCount2)
+
+
+      // TEST 3 (for appendChild)
+      var body = document.getElementsByTagName('body')[0];
+      // create something to verify we can still append unique
+      var uniqueElement = document.createElement('p')
+      uniqueElement.setAttribute('some-attr', 'insert-before-some-value-3');
+      uniqueElement.setAttribute('name', 'insert-before-testing-dedupe-3');
+      // append it
+      body.insertBefore(uniqueElement.cloneNode(), document.getElementsByTagName('div')[0]);
+      body.insertBefore(uniqueElement.cloneNode(), document.getElementsByTagName('div')[0]);
+      // verify it
+      var appendCount3 = 0;
+      Array.from(body.children).forEach(function(child) {
+        if (child.outerHTML === uniqueElement.outerHTML) {
+          appendCount3 += 1;
+        }
+      })
+      // report it
+      reportResult('insert-before-check-3', 'insert-before-result-3', appendCount3)
+
+    </script>
+
+  </body>
+</html>
+
