@@ -55,9 +55,53 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
     });
   }
 
+  function serializeAttribute(attr, node) {
+    if (
+      node.tagName === "META" &&
+      attr.name &&
+      attr.name.toLowerCase() === "content"
+    ) {
+      return "";
+    }
+    // only 1 rel canonical
+    if (
+      node.getAttribute("rel") &&
+      node.getAttribute("rel") === "canonical" &&
+      attr.name &&
+      attr.name.toLowerCase() === "href"
+    ) {
+      return "";
+    }
+    return (attr.name || "") + (attr.value || "");
+  }
+
+  function serializeNodeTagAndAttrs(node) {
+    var attrs = [];
+    Array.prototype.forEach.call(node.attributes || node.attrs, function(attr) {
+      attrs.push(serializeAttribute(attr, node));
+    });
+    return node.tagName + attrs.sort().join(",");
+  }
+
+  // 1. link and meta have no outerHTML, and their attrs are order insensitive
+  // 2. angular may insert meta/link with a template for the content attr
+  //    so we hardcode specific tags we know are unique irrespective of the content
+  //    a. meta rel=canonical (ignore href)
+  //    b. any meta with a content attr (just assume the name or prop makes it unique)
+  function compareNodes(ourNode, iteratingNode) {
+    if (ourNode.tagName !== iteratingNode.tagName) return false;
+
+    if (ourNode.tagName === "LINK" || ourNode.tagName === "META") {
+      return serializeNodeTagAndAttrs(ourNode) ===
+        serializeNodeTagAndAttrs(iteratingNode);
+    } else {
+      return ourNode.outerHTML === iteratingNode.outerHTML;
+    }
+  }
+
   function deleteExistingIfExist(nodeToInsert, parentElement) {
     var found = toArray(parentElement.children).find(function(child) {
-      return child.outerHTML === nodeToInsert.outerHTML;
+      return compareNodes(nodeToInsert, child);
     });
     if (found) parentElement.removeChild(found);
   }
@@ -66,8 +110,9 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
   //    script, link etc... in the head tag by destroying the element from the
   //    server-side rendered HTML if it's the same as what we're appending/inserting
   // 2. we destroy the original (as opposed to bailing out and doing  nothing)
-  //    because it allows us to preserve the order the client expects
-  //    and order is important for CSS
+  //    because it:
+  //    a. allows the client to control order (important for CSS)
+  //    b. allows the client to control meta information on the DOM
   var originalAppendChild = window.Node.prototype.appendChild;
   window.Node.prototype.appendChild = function(nodeToInsert) {
     try {
@@ -79,7 +124,7 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
   };
 
   // once nuance different than the appendChild implementation
-  // if we try to insert, for example: <meta name="hello" /> before <meta name="hello" />
+  // if we try to insert, an element that already exists right before itself i.e.: <meta name="hello" /> before <meta name="hello" />
   // just bail out and return the original reference node (there's nothing to destroy/remove)
   var originalInsertBefore = window.Node.prototype.insertBefore;
   window.Node.prototype.insertBefore = function(newNode, referenceNode) {
@@ -87,7 +132,13 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
       if (this.nodeName !== "HEAD") {
         return originalInsertBefore.apply(this, arguments);
       }
-      if (newNode.outerHTML === referenceNode.outerHTML) return referenceNode;
+      // TODO: (improvement) - this shouldn't just return the referenceNode
+      // it should replace the referenceNode with `this` so the client SPA has a reference
+      // (assuming the client SPA attaches a reference before insertBefore)
+      // (but I didn't see this break anything yet - 2017-03-06)
+      if (compareNodes(newNode, referenceNode)) {
+        return referenceNode;
+      }
       deleteExistingIfExist(newNode, this);
       return originalInsertBefore.apply(this, arguments);
     } catch (err) {

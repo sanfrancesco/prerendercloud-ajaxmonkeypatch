@@ -5,11 +5,12 @@
     <meta charset = 'UTF-8' />
 
     <meta name='viewport' content='width=device-width, initial-scale=1'>
-
     <script type='text/javascript' src='/head-dedupe.js'></script>
 
     <!-- put this meta node in the HTML just as it would be from a server-side rendered page -->
-    <meta some-attr="some-value" name="testing-dedupe">
+    <!-- note, the attrs here are in a different order than the one being inserted -->
+    <meta name="testing-dedupe" content="will-be-replaced" some-attr="some-value">
+    <meta name="insert-before-testing-dedupe" some-attr="insert-before-some-value" content="will-be-replaced">
 
 
     <link rel='stylesheet' href='https://unpkg.com/purecss@0.6.1/build/pure-min.css'>
@@ -31,44 +32,83 @@
         <a href="/"><img class='logo' src='/prerender-cloud-logo.svg' /></a>
         <h1><a href='https://www.prerender.cloud/' target='_blank'>Prerender.cloud</a> <code>&lt;Head&gt;</code> DeDupe Test</h1>
         <p>This is a test for monkey patches to appendChild and insertBefore, included by default, from <a href='https://www.prerender.cloud/' target='_blank'>prerender.cloud</a>. It should be run against all major browsers.</p>
-        <p>Its purpose is to prevent SPA frameworks from inserting HTML nodes (within <code>&lt;head&gt;</code> only) that were previously rendered on the server. react-helmet, for example does not need this monkey patch, but many other frameworks do.</p>
+        <p>Its purpose is to prevent SPA frameworks from inserting HTML nodes (within <code>&lt;head&gt;</code> only) that were previously rendered on the server (existing meta and link elements, however, will be destroyed and replaced so the client SPA has a reference to them). react-helmet, for example does not need this monkey patch, but many other frameworks do.</p>
       </div>
       <div class='col-xs-12 col-lg-6'>
         <h2>appendChild</h2>
         <table class='pure-table pure-table-bordered'>
-          <tr>
-            <td>when exists in DOM before client render, number of meta elements created in HEAD via <strong>appendChild</strong> should be 1</td>
-            <td id='append-child-result' data-expected='1'></td>
-            <td id='append-child-check'></td>
-          </tr>
-          <tr>
-            <td>when not in DOM before client render, number of meta elements created in HEAD via <strong>appendChild</strong> should be 1</td>
-            <td id='append-child-result-2' data-expected='1'></td>
-            <td id='append-child-check-2'></td>
-          </tr>
-          <tr>
-            <td>when not in DOM before client render, number of p elements created in BODY via <strong>appendChild</strong> should be 2</td>
-            <td id='append-child-result-3' data-expected='2'></td>
-            <td id='append-child-check-3'></td>
-          </tr>
+          <thead>
+            <tr>
+              <th>test</th>
+              <th>expectation</th>
+              <th>actual</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>when exists in DOM before client render, number of meta elements created in HEAD</td>
+              <td id='append-child-result' data-expected='1'></td>
+              <td id='append-child-check'></td>
+            </tr>
+            <tr>
+              <td>
+                when exists in DOM before client render, matching meta element created from client replaces the original
+                <hr />
+                <small>
+                this test and functionality was originally implemented for Angular, which appends/inserts meta tags with templates in the <code>content</code> attr that can't be matched by equality</small>
+                <hr />
+                <small>this test also verifies that SSR elements are being destroyed and replaced, which is also important for:<br />1. order senstive link tags (stylesheets) <br />2. and we also want the client DOM elements to takeover since they may have additional meta info on the DOM node</small>
+              </td>
+              <td id='append-child-result-content' data-expected='{{my-angular-data}}'></td>
+              <td id='append-child-check-content'></td>
+            </tr>
+            <tr>
+              <td>when not in DOM before client render, number of meta elements created in HEAD</td>
+              <td id='append-child-result-2' data-expected='1'></td>
+              <td id='append-child-check-2'></td>
+            </tr>
+            <tr>
+              <td>when not in DOM before client render, number of p elements created in BODY</td>
+              <td id='append-child-result-3' data-expected='2'></td>
+              <td id='append-child-check-3'></td>
+            </tr>
+          </tbody>
         </table>
         <h2>insertBefore</h2>
         <table class='pure-table pure-table-bordered'>
-          <tr>
-            <td>when exists in DOM before client render, number of meta elements created via <strong>insertBefore</strong> should be 1</td>
-            <td id='insert-before-result' data-expected='1'></td>
-            <td id='insert-before-check'></td>
-          </tr>
-          <tr>
-            <td>when not in DOM before client render, number of meta elements created via <strong>insertBefore</strong> should be 1</td>
-            <td id='insert-before-result-2' data-expected='1'></td>
-            <td id='insert-before-check-2'></td>
-          </tr>
-          <tr>
-            <td>when not in DOM before client render, number of p elements created in BODY via <strong>insertBefore</strong> should be 2</td>
-            <td id='insert-before-result-3' data-expected='2'></td>
-            <td id='insert-before-check-3'></td>
-          </tr>
+          <thead>
+            <tr>
+              <th>test</th>
+              <th>expectation</th>
+              <th>actual</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>when exists in DOM before client render, number of meta elements created</td>
+              <td id='insert-before-result' data-expected='1'></td>
+              <td id='insert-before-check'></td>
+            </tr>
+            <tr>
+              <td>
+                when exists in DOM before client render, matching meta element created from client replaces the original
+                <hr />
+                <small>(see note in previous section)</small>
+              </td>
+              <td id='insert-before-result-content' data-expected='{{my-angular-data}}'></td>
+              <td id='insert-before-check-content'></td>
+            </tr>
+            <tr>
+              <td>when not in DOM before client render, number of meta elements created</td>
+              <td id='insert-before-result-2' data-expected='1'></td>
+              <td id='insert-before-check-2'></td>
+            </tr>
+            <tr>
+              <td>when not in DOM before client render, number of p elements created in BODY</td>
+              <td id='insert-before-result-3' data-expected='2'></td>
+              <td id='insert-before-check-3'></td>
+            </tr>
+          </tbody>
         </table>
 
       </div>
@@ -85,6 +125,46 @@
           document.getElementById(checkId).innerHTML = "❌"
         }
       }
+
+      function toArray(obj) {
+        var array = [];
+        // iterate backwards ensuring that length is an UInt32
+        for (var i = obj.length >>> 0; i--; ) {
+          array[i] = obj[i];
+        }
+        return array;
+      }
+
+      function serializeAttribute(attr) {
+        if (attr.name && attr.name.toLowerCase() === "content") return "";
+        return ((attr.name || "") + (attr.value || ""));
+      }
+
+      // ignores innerHTML, ignores content attr (angular will insert it with a template rather than the final string)
+      function serializeNodeTagAndAttrs(node) {
+        // if (node.tagName !== "LINK" || node.tagName !== "META") throw new Error('only for link and meta');
+
+        var attrs = [];
+        Array.prototype.forEach.call(node.attributes || node.attrs, function(attr) {
+          attrs.push(serializeAttribute(attr));
+        });
+
+        var huh =  node.tagName + attrs.sort().join(',');
+        return huh;
+      }
+
+      // traverse parent, fina matching elements irrespective of attr order
+      // i.e. <meta a b> is the same as <meta b a>
+      function findAllByNodeByAttrMatch(node, parentElement) {
+        if (node.tagName === "LINK" || node.tagName === "META") {
+          return toArray(parentElement.children).filter(function(child) {
+            return serializeNodeTagAndAttrs(child) === serializeNodeTagAndAttrs(node);
+          });
+        } else {
+          throw new Error("only for link and meta");
+        }
+
+      }
     </script>
 
     <script type='text/javascript'>
@@ -92,6 +172,7 @@
       var someElementWeAreGoingToInsertManyTimes = document.createElement('meta');
       someElementWeAreGoingToInsertManyTimes.setAttribute('some-attr', 'some-value');
       someElementWeAreGoingToInsertManyTimes.setAttribute('name', 'testing-dedupe');
+      someElementWeAreGoingToInsertManyTimes.setAttribute('content', '{{my-angular-data}}');
 
       // find <head></head>
       var head = document.getElementsByTagName('head')[0];
@@ -101,14 +182,11 @@
       head.appendChild(someElementWeAreGoingToInsertManyTimes.cloneNode());
 
       // verify it
-      var appendCount = 0;
-      Array.from(head.children).forEach(function(child) {
-        if (child.outerHTML === someElementWeAreGoingToInsertManyTimes.outerHTML) {
-          appendCount += 1;
-        }
-      })
+      var appendCount = findAllByNodeByAttrMatch(someElementWeAreGoingToInsertManyTimes, head).length;
+      var contentData = findAllByNodeByAttrMatch(someElementWeAreGoingToInsertManyTimes, head)[0].getAttribute('content');
       // report it
       reportResult('append-child-check', 'append-child-result', appendCount)
+      reportResult('append-child-check-content', 'append-child-result-content', contentData)
 
       // TEST 2 (for appendChild)
 
@@ -120,11 +198,7 @@
       head.appendChild(uniqueElement.cloneNode());
       // verify it
       var appendCount2 = 0;
-      Array.from(head.children).forEach(function(child) {
-        if (child.outerHTML === uniqueElement.outerHTML) {
-          appendCount2 += 1;
-        }
-      })
+      var appendCount2 = findAllByNodeByAttrMatch(uniqueElement, head).length;
       // report it
       reportResult('append-child-check-2', 'append-child-result-2', appendCount2)
 
@@ -153,8 +227,9 @@
     <script type='text/javascript'>
       // create an element
       var someElementWeAreGoingToInsertManyTimes = document.createElement('meta');
-      someElementWeAreGoingToInsertManyTimes.setAttribute('some-attr', 'some-value');
-      someElementWeAreGoingToInsertManyTimes.setAttribute('name', 'testing-dedupe');
+      someElementWeAreGoingToInsertManyTimes.setAttribute('some-attr', 'insert-before-some-value');
+      someElementWeAreGoingToInsertManyTimes.setAttribute('name', 'insert-before-testing-dedupe');
+      someElementWeAreGoingToInsertManyTimes.setAttribute('content', '{{my-angular-data}}');
 
       // find fist <meta></meta>
       var meta = document.getElementsByTagName('meta')[0];
@@ -165,15 +240,13 @@
 
       // find <head></head>
       var head = document.getElementsByTagName('head')[0];
-      var appendCount = 0;
-      Array.from(head.children).forEach(function(child) {
-        if (child.outerHTML === someElementWeAreGoingToInsertManyTimes.outerHTML) {
-          appendCount += 1;
-        }
-      })
+      // verify it
+      var appendCount = findAllByNodeByAttrMatch(someElementWeAreGoingToInsertManyTimes, head).length;
+      var contentData = findAllByNodeByAttrMatch(someElementWeAreGoingToInsertManyTimes, head)[0].getAttribute('content');
 
       // report it
       reportResult('insert-before-check', 'insert-before-result', appendCount)
+      reportResult('insert-before-check-content', 'insert-before-result-content', contentData)
 
       // TEST 2 (for insertBefore)
 
