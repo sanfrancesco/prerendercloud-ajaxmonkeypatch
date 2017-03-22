@@ -22,7 +22,7 @@ Examples: duplicate meta, script or link tags.
 `npm start` (now view the results of the tests in your various browsers, e.g.: Chrome, Firefox, Safari, IE etc...)
 
 * http://localhost:8888
-* http://localhost:8888/head-dedupe.htmls
+* http://localhost:8888/head-dedupe.html
 
 # Building (what gets injected)
 

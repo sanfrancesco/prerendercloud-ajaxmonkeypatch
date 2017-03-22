@@ -43,8 +43,11 @@ function ajaxMonkeyPatchForPreload (window, cachedResponses) {
     this._precloudurl = url;
     this._precloudMethod = method;
 
-    // normalize relative paths as absolute paths on same origin (because that's what the server does)
-    if (this._precloudurl && this._precloudurl.substr(0, 1) === '/') this._precloudurl = window.location.origin + this._precloudurl;
+    // normalize absolute paths to origin as relative paths
+    // (because the server already does this, and it does it so the prerendering
+    // can happen on a different host, i.e. prerendering happens on: staging.example.com, but
+    // is served from example.com)
+    this._precloudurl = this._precloudurl.replace(new RegExp(`^${window.location.origin}`), '');
 
     return origOpen.apply(this, arguments);
   };

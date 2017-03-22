@@ -39,8 +39,10 @@
           The monkey patch stubs GET requests with a url->payload mapping from a base64 encoded JSON object. Once an endpoint is called, it is cleared from the stub/patch.
         </p>
         <div>
-          <p>The data structure looks like:</p>
+          <p>The data structure for absolute URLs looks like:</p>
           <pre><code>{'http://example.org/ajax-endpoint': 'aGVsbG8gd29ybGQ='}</code></pre>
+          <p>and for absolute or relative against window.location.origin:</p>
+          <pre><code>{'/ajax-endpoint': 'aGVsbG8gd29ybGQ='}</code></pre>
         </div>
         <ul>
           <li>base64 is used because escaping JSON payloads in the DOM is confusing and hard to understand after the fact</li>
@@ -197,16 +199,16 @@
 
       var base64Expectations = {
         dev: {
-          // new Buffer(JSON.stringify({'http://localhost:8888/json1': ['application/json', JSON.stringify({text: 'from-client: I ½ ♥ 𩶘'})]})).toString('base64')
-          json: 'eyJodHRwOi8vbG9jYWxob3N0Ojg4ODgvanNvbjEiOlsiYXBwbGljYXRpb24vanNvbiIsIntcInRleHRcIjpcImZyb20tY2xpZW50OiBJIMK9IOKZpSDwqbaYXCJ9Il19',
-          // new Buffer(JSON.stringify({'http://localhost:8888/text1': ['text/plain', 'from-client: I ½ ♥ 𩶘']})).toString('base64')
-          text: 'eyJodHRwOi8vbG9jYWxob3N0Ojg4ODgvdGV4dDEiOlsidGV4dC9wbGFpbiIsImZyb20tY2xpZW50OiBJIMK9IOKZpSDwqbaYIl19'
+          // Buffer.from(JSON.stringify({'/json1': ['application/json', JSON.stringify({text: 'from-client: I ½ ♥ 𩶘'})]})).toString('base64')
+          json: 'eyIvanNvbjEiOlsiYXBwbGljYXRpb24vanNvbiIsIntcInRleHRcIjpcImZyb20tY2xpZW50OiBJIMK9IOKZpSDwqbaYXCJ9Il19',
+          // Buffer.from(JSON.stringify({'/text1': ['text/plain', 'from-client: I ½ ♥ 𩶘']})).toString('base64')
+          text: 'eyIvdGV4dDEiOlsidGV4dC9wbGFpbiIsImZyb20tY2xpZW50OiBJIMK9IOKZpSDwqbaYIl19'
         },
         prod: {
-          // new Buffer(JSON.stringify({'https://prerendercloud-ajaxmonkeypatch.herokuapp.com/json1': ['application/json', JSON.stringify({text: 'from-client: I ½ ♥ 𩶘'})]})).toString('base64')
-          json: 'eyJodHRwczovL3ByZXJlbmRlcmNsb3VkLWFqYXhtb25rZXlwYXRjaC5oZXJva3VhcHAuY29tL2pzb24xIjpbImFwcGxpY2F0aW9uL2pzb24iLCJ7XCJ0ZXh0XCI6XCJmcm9tLWNsaWVudDogSSDCvSDimaUg8Km2mFwifSJdfQ==',
-          // new Buffer(JSON.stringify({'https://prerendercloud-ajaxmonkeypatch.herokuapp.com/text1': ['text/plain', 'from-client: I ½ ♥ 𩶘']})).toString('base64')
-          text: 'eyJodHRwczovL3ByZXJlbmRlcmNsb3VkLWFqYXhtb25rZXlwYXRjaC5oZXJva3VhcHAuY29tL3RleHQxIjpbInRleHQvcGxhaW4iLCJmcm9tLWNsaWVudDogSSDCvSDimaUg8Km2mCJdfQ=='
+          // Buffer.from(JSON.stringify({'/json1': ['application/json', JSON.stringify({text: 'from-client: I ½ ♥ 𩶘'})]})).toString('base64')
+          json: 'eyIvanNvbjEiOlsiYXBwbGljYXRpb24vanNvbiIsIntcInRleHRcIjpcImZyb20tY2xpZW50OiBJIMK9IOKZpSDwqbaYXCJ9Il19',
+          // Buffer.from(JSON.stringify({'/text1': ['text/plain', 'from-client: I ½ ♥ 𩶘']})).toString('base64')
+          text: 'eyIvdGV4dDEiOlsidGV4dC9wbGFpbiIsImZyb20tY2xpZW50OiBJIMK9IOKZpSDwqbaYIl19'
         }
       };
       var getEnv = function() { return window.location.origin.match(/localhost/) ? 'dev' : 'prod'; };
