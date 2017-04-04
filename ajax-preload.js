@@ -71,12 +71,20 @@ function ajaxMonkeyPatchForPreload (window, cachedResponses) {
 
         // http://stackoverflow.com/questions/26447335/how-can-i-modify-the-xmlhttprequest-responsetext-received-by-another-function
         // see above link with one exception: to get IE11 to work, use getters, not values
-        Object.defineProperty(this, 'response', {get: function () { return response; }});
-        Object.defineProperty(this, 'responseText', {get: function () { return response; }});
-        Object.defineProperty(this, 'readyState', {get: function () { return 4; }});
-        Object.defineProperty(this, 'status', {get: function () { return 200; }});
-        Object.defineProperty(this, 'statusText', {get: function () { return 200; }});
-        Object.defineProperty(this, 'getResponseHeader', { value: function (headerName) { if (headerName && headerName.match(/content-type/i)) return contentType; } });
+        try {
+          Object.defineProperty(this, 'response', {get: function () { return response; }});
+          Object.defineProperty(this, 'responseText', {get: function () { return response; }});
+          Object.defineProperty(this, 'readyState', {get: function () { return 4; }});
+          Object.defineProperty(this, 'status', {get: function () { return 200; }});
+          Object.defineProperty(this, 'statusText', {get: function () { return 200; }});
+          Object.defineProperty(this, 'getResponseHeader', { value: function (headerName) { if (headerName && headerName.match(/content-type/i)) return contentType; } });
+        } catch (e) {
+          if (e instanceof TypeError) {
+            return origSend.apply(this, arguments);
+          } else {
+            throw e;
+          }
+        }
 
         // dispatching events also calls handlers, so if there are event listeners, do dispatchEvent only, even if there are also handlers
         // if there are only handlers, call handlers.
