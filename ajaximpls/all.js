@@ -3,5 +3,8 @@ var ajaxImpls = {
   onReadyStatechangePost: function(params, url, cb) { return ajaxOnReadyStateChange(url, cb, { method: 'POST', params: params })},
   listener: ajaxListener,
   angular: ajaxAngular,
-  reqwest: reqwest
+  reqwest: reqwest,
+  jQuery: function(url, cb) {
+    jQuery.ajax(url, { method: 'GET' }).then(cb)
+  }
 }

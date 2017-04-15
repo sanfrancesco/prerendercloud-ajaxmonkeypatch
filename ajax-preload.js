@@ -77,6 +77,9 @@ function ajaxMonkeyPatchForPreload (window, cachedResponses) {
           Object.defineProperty(this, 'readyState', {get: function () { return 4; }});
           Object.defineProperty(this, 'status', {get: function () { return 200; }});
           Object.defineProperty(this, 'statusText', {get: function () { return 200; }});
+          // jQuery.ajax needs this
+          Object.defineProperty(this, 'getAllResponseHeaders', { value: function () { return `content-type: ${contentType}`; } });
+          // reqwest needs this
           Object.defineProperty(this, 'getResponseHeader', { value: function (headerName) { if (headerName && headerName.match(/content-type/i)) return contentType; } });
         } catch (e) {
           if (e instanceof TypeError) {

@@ -14,6 +14,7 @@
     <script type='text/javascript' src='/ajaximpls/listener.js'></script>
     <script type='text/javascript' src='/ajaximpls/angular.js'></script>
     <script type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/reqwest/2.0.5/reqwest.js'></script>
+    <script type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.js'></script>
     <script type='text/javascript' src='/ajaximpls/all.js'></script>
 
     <link rel='stylesheet' href='https://unpkg.com/purecss@0.6.1/build/pure-min.css'>
@@ -123,7 +124,7 @@
         </table>
 
         <h2>Happy path text/plain via <strong>reqwest helper</strong></h2>
-        <p>relies on content-type header, and deferred execution of xhr.send</p>
+        <p>relies on content-type header (via getResponseHeader), and deferred execution of xhr.send</p>
         <table class='pure-table pure-table-bordered'>
           <tr>
             <th>1st req should come from stub</th>
@@ -134,6 +135,36 @@
             <th>2nd req should come from server</th>
             <td id='xhr2textReqwest-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
             <td id='xhr2textReqwest-check'></td>
+          </tr>
+        </table>
+
+        <h2>Happy path application/json via <strong>reqwest helper</strong></h2>
+        <p>relies on content-type header (via getResponseHeader), and deferred execution of xhr.send</p>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <th>1st req should come from stub</th>
+            <td id='xhr1JsonReqwest-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
+            <td id='xhr1JsonReqwest-check'></td>
+          </tr>
+          <tr>
+            <th>2nd req should come from server</th>
+            <td id='xhr2JsonReqwest-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+            <td id='xhr2JsonReqwest-check'></td>
+          </tr>
+        </table>
+
+        <h2>Happy path application/json via <strong>jquery.ajax helper</strong></h2>
+        <p>relies on content-type header, via getAllResponseHeaders (not getResponseHeader)</p>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <th>1st req should come from stub</th>
+            <td id='xhr1JsonJquery-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
+            <td id='xhr1JsonJquery-check'></td>
+          </tr>
+          <tr>
+            <th>2nd req should come from server</th>
+            <td id='xhr2JsonJquery-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+            <td id='xhr2JsonJquery-check'></td>
           </tr>
         </table>
 
@@ -163,9 +194,9 @@
           }
         })
       }
-      function runTests(ajaxImpl, el1, el2, endpoint, useJson) {
+      function runTests(ajaxImpl, el1, el2, endpoint, useJson, alreadyParsedAsJson) {
         ajaxImpl(endpoint, function(res) {
-          document.getElementById(el1 + '-result').innerHTML = useJson ? JSON.parse(res).text : res;
+          document.getElementById(el1 + '-result').innerHTML = useJson ? (!alreadyParsedAsJson && JSON.parse(res) || res).text : res;
 
           if (document.getElementById(el1 + '-result').innerHTML === document.getElementById(el1 + '-result').getAttribute('data-expected')) {
             document.getElementById(el1 + '-check').innerHTML = "✅"
@@ -174,7 +205,8 @@
           }
 
           ajaxImpl(endpoint, function(res) {
-            document.getElementById(el2 + '-result').innerHTML = useJson ? JSON.parse(res).text : res;
+
+            document.getElementById(el2 + '-result').innerHTML = useJson ? (!alreadyParsedAsJson && JSON.parse(res) || res).text : res;
 
             if (document.getElementById(el2 + '-result').innerHTML === document.getElementById(el2 + '-result').getAttribute('data-expected')) {
               document.getElementById(el2 + '-check').innerHTML = "✅"
@@ -251,10 +283,20 @@
         ajaxMonkeyPatchForPreload(window, base64Expectations.text());
         runTests(ajaxImpls.angular, 'xhr1textAngular','xhr2textAngular', host + 'text1', false);
 
-        // when valid text payload using angular's helper
+        // when valid text payload using reqwest
         restore();
         ajaxMonkeyPatchForPreload(window, base64Expectations.text());
         runTests(ajaxImpls.reqwest, 'xhr1textReqwest','xhr2textReqwest', host + 'text1', false);
+
+        // when valid json payload using reqwest
+        restore();
+        ajaxMonkeyPatchForPreload(window, base64Expectations.json());
+        runTests(ajaxImpls.reqwest, 'xhr1JsonReqwest','xhr2JsonReqwest', host + 'json1', true, true);
+
+        // when valid json payload using jquery.ajax
+        restore();
+        ajaxMonkeyPatchForPreload(window, base64Expectations.json());
+        runTests(ajaxImpls.jQuery, 'xhr1JsonJquery','xhr2JsonJquery', host + 'json1', true, true);
 
         // valid post request
         restore();
