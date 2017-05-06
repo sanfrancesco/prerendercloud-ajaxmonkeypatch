@@ -18,20 +18,22 @@ function ajaxMonkeyPatchForBypass (window) {
     return ret;
   };
 
-  var realFetch = window.fetch;
-  window.fetch = function (urlOrReq, init) {
-    if (urlOrReq && urlOrReq.headers) {
-      if ((urlOrReq && urlOrReq.url) && (urlOrReq.url.startsWith('/') || urlOrReq.url.startsWith(window.location.origin))) {
-        urlOrReq.headers.set('x-prerendered', true);
+  if (window.fetch) {
+    var realFetch = window.fetch;
+    window.fetch = function (urlOrReq, init) {
+      if (urlOrReq && urlOrReq.headers) {
+        if ((urlOrReq && urlOrReq.url) && (urlOrReq.url.startsWith('/') || urlOrReq.url.startsWith(window.location.origin))) {
+          urlOrReq.headers.set('x-prerendered', true);
+        }
+        return realFetch(urlOrReq, init || urlOrReq);
+      } else {
+        if ((urlOrReq) && (urlOrReq.startsWith('/') || urlOrReq.startsWith(window.location.origin))) {
+          init = init || {};
+          init.headers = init.headers || {};
+          init.headers['x-prerendered'] = 'true';
+        }
+        return realFetch(urlOrReq, init);
       }
-      return realFetch(urlOrReq, init || urlOrReq);
-    } else {
-      if ((urlOrReq) && (urlOrReq.startsWith('/') || urlOrReq.startsWith(window.location.origin))) {
-        init = init || {};
-        init.headers = init.headers || {};
-        init.headers['x-prerendered'] = 'true';
-      }
-      return realFetch(urlOrReq, init);
-    }
-  };
+    };
+  }
 }
