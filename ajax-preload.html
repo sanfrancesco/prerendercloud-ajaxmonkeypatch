@@ -80,6 +80,34 @@
           </tr>
         </table>
 
+        <h2>Happy path via window.fetch</h2>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <th>1st req should come from stub</th>
+            <td id='fetch1-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
+            <td id='fetch1-check'></td>
+          </tr>
+          <tr>
+            <th>2nd req should come from server</th>
+            <td id='fetch2-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+            <td id='fetch2-check'></td>
+          </tr>
+        </table>
+
+        <h2>Happy path via window.fetch and passing Request obj</h2>
+        <table class='pure-table pure-table-bordered'>
+          <tr>
+            <th>1st req should come from stub</th>
+            <td id='fetch1RequestObj-result' data-expected='from-client: I ½ ♥ 𩶘'></td>
+            <td id='fetch1RequestObj-check'></td>
+          </tr>
+          <tr>
+            <th>2nd req should come from server</th>
+            <td id='fetch2RequestObj-result' data-expected='from-server: I ½ ♥ 𩶘'></td>
+            <td id='fetch2RequestObj-check'></td>
+          </tr>
+        </table>
+
         <h2>Happy path <strong>text/plain</strong> via onreadystatechange callback</h2>
         <table class='pure-table pure-table-bordered'>
           <tr>
@@ -223,10 +251,12 @@
 
       var originalXMLHttpRequestOpen = XMLHttpRequest.prototype.open;
       var originalXMLHttpRequestSend = XMLHttpRequest.prototype.send;
+      var originalFetch = fetch;
 
       function restore() {
         XMLHttpRequest.prototype.open = originalXMLHttpRequestOpen;
         XMLHttpRequest.prototype.send = originalXMLHttpRequestSend;
+        fetch = originalFetch;
       }
 
       var base64Expectations = {
@@ -265,8 +295,19 @@
         runTests(ajaxImpls.onReadyStatechange, 'xhr1bad','xhr2bad', host + 'json1', true);
 
         // when base64 is valid stringified JSON payload:
+        restore();
         ajaxMonkeyPatchForPreload(window, base64Expectations.json());
         runTests(ajaxImpls.onReadyStatechange, 'xhr1','xhr2', host + 'json1', true);
+
+        // when base64 is valid stringified JSON payload:
+        restore();
+        ajaxMonkeyPatchForPreload(window, base64Expectations.json());
+        runTests(ajaxImpls.fetch, 'fetch1','fetch2', host + 'json1', true, true);
+
+        // when base64 is valid stringified JSON payload:
+        restore();
+        ajaxMonkeyPatchForPreload(window, base64Expectations.json());
+        runTests(ajaxImpls.fetchRequestObj, 'fetch1RequestObj','fetch2RequestObj', host + 'json1', true, true);
 
         // when valid text payload
         restore();
