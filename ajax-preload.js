@@ -7,6 +7,10 @@ function ajaxMonkeyPatchForPreload (window, cachedResponses) {
   if (!(window.location && window.location.origin)) return;
   if (!Object.defineProperty) return;
 
+  function isString (myVar) {
+    return typeof myVar === 'string' || myVar instanceof String;
+  }
+
   // https://coolaj86.com/articles/base64-unicode-utf-8-javascript-and-you/
   function b64ToUtf8 (b64) {
     var binstr = window.atob(b64);
@@ -124,4 +128,39 @@ function ajaxMonkeyPatchForPreload (window, cachedResponses) {
     if (window.requestAnimationFrame) return window.requestAnimationFrame(deferredHandler);
     return setTimeout(deferredHandler, 0);
   };
+
+  if (window.fetch) {
+    var realFetch = window.fetch;
+    window.fetch = function (urlOrReq, init) {
+      let url;
+
+      if (isString(urlOrReq)) {
+        url = urlOrReq;
+      } else if (urlOrReq && urlOrReq.url && isString(urlOrReq.url)) {
+        url = urlOrReq.url;
+        if (urlOrReq.method && !urlOrReq.method.match(/get/i)) {
+          return realFetch.apply(this, arguments);
+        }
+      } else {
+        return realFetch.apply(this, arguments);
+      }
+
+      // normalize absolute paths to origin as relative paths
+      // (because the server already does this, and it does it so the prerendering
+      // can happen on a different host, i.e. prerendering happens on: staging.example.com, but
+      // is served from example.com)
+      url = url.replace(new RegExp(`^${window.location.origin}`), '');
+
+      // bail out right away if we don't have the URL
+      if (!cachedResponses[url]) return realFetch.apply(this, arguments);
+
+      var contentType = cachedResponses[url][0];
+      var response = cachedResponses[url][1];
+      delete cachedResponses[url];
+
+      return Promise.resolve(new window.Response(response, {
+        headers: { 'Content-Type': contentType }
+      }));
+    };
+  }
 }
