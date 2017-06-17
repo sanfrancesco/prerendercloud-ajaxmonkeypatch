@@ -1,9 +1,9 @@
 // eslint-disable-next-line no-unused-vars
-function insertAppendMonkeyPatchForHeadDeDupe(window) {
-  function toArray(obj) {
+function insertAppendMonkeyPatchForHeadDeDupe (window) {
+  function toArray (obj) {
     var array = [];
     // iterate backwards ensuring that length is an UInt32
-    for (var i = obj.length >>> 0; i--; ) {
+    for (var i = obj.length >>> 0; i--;) {
       array[i] = obj[i];
     }
     return array;
@@ -12,8 +12,9 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
   // Array.prototype.find polyfill
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/find#Polyfill
   if (!Array.prototype.find) {
-    Object.defineProperty(Array.prototype, "find", {
-      value: function(predicate) {
+    // eslint-disable-next-line no-extend-native
+    Object.defineProperty(Array.prototype, 'find', {
+      value: function (predicate) {
         // 1. Let O be ? ToObject(this value).
         if (this == null) {
           throw new TypeError('"this" is null or not defined');
@@ -25,8 +26,8 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
         var len = o.length >>> 0;
 
         // 3. If IsCallable(predicate) is false, throw a TypeError exception.
-        if (typeof predicate !== "function") {
-          throw new TypeError("predicate must be a function");
+        if (typeof predicate !== 'function') {
+          throw new TypeError('predicate must be a function');
         }
 
         // 4. If thisArg was supplied, let T be thisArg; else let T be undefined.
@@ -55,32 +56,32 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
     });
   }
 
-  function serializeAttribute(attr, node) {
+  function serializeAttribute (attr, node) {
     if (
-      node.tagName === "META" &&
+      node.tagName === 'META' &&
       attr.name &&
-      attr.name.toLowerCase() === "content"
+      attr.name.toLowerCase() === 'content'
     ) {
-      return "";
+      return '';
     }
     // only 1 rel canonical
     if (
-      node.getAttribute("rel") &&
-      node.getAttribute("rel") === "canonical" &&
+      node.getAttribute('rel') &&
+      node.getAttribute('rel') === 'canonical' &&
       attr.name &&
-      attr.name.toLowerCase() === "href"
+      attr.name.toLowerCase() === 'href'
     ) {
-      return "";
+      return '';
     }
-    return (attr.name || "") + (attr.value || "");
+    return (attr.name || '') + (attr.value || '');
   }
 
-  function serializeNodeTagAndAttrs(node) {
+  function serializeNodeTagAndAttrs (node) {
     var attrs = [];
-    Array.prototype.forEach.call(node.attributes || node.attrs, function(attr) {
+    Array.prototype.forEach.call(node.attributes || node.attrs, function (attr) {
       attrs.push(serializeAttribute(attr, node));
     });
-    return node.tagName + attrs.sort().join(",");
+    return node.tagName + attrs.sort().join(',');
   }
 
   // 1. link and meta have no outerHTML, and their attrs are order insensitive
@@ -88,10 +89,10 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
   //    so we hardcode specific tags we know are unique irrespective of the content
   //    a. meta rel=canonical (ignore href)
   //    b. any meta with a content attr (just assume the name or prop makes it unique)
-  function compareNodes(ourNode, iteratingNode) {
+  function compareNodes (ourNode, iteratingNode) {
     if (ourNode.tagName !== iteratingNode.tagName) return false;
 
-    if (ourNode.tagName === "LINK" || ourNode.tagName === "META") {
+    if (ourNode.tagName === 'LINK' || ourNode.tagName === 'META') {
       return serializeNodeTagAndAttrs(ourNode) ===
         serializeNodeTagAndAttrs(iteratingNode);
     } else {
@@ -99,8 +100,8 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
     }
   }
 
-  function deleteExistingIfExist(nodeToInsert, parentElement) {
-    var found = toArray(parentElement.children).find(function(child) {
+  function deleteExistingIfExist (nodeToInsert, parentElement) {
+    var found = toArray(parentElement.children).find(function (child) {
       return compareNodes(nodeToInsert, child);
     });
     if (found) parentElement.removeChild(found);
@@ -114,9 +115,9 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
   //    a. allows the client to control order (important for CSS)
   //    b. allows the client to control meta information on the DOM
   var originalAppendChild = window.Node.prototype.appendChild;
-  window.Node.prototype.appendChild = function(nodeToInsert) {
+  window.Node.prototype.appendChild = function (nodeToInsert) {
     try {
-      if (this.nodeName === "HEAD") deleteExistingIfExist(nodeToInsert, this);
+      if (this.nodeName === 'HEAD') deleteExistingIfExist(nodeToInsert, this);
       return originalAppendChild.apply(this, arguments);
     } catch (err) {
       return originalAppendChild.apply(this, arguments);
@@ -127,18 +128,21 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
   // if we try to insert, an element that already exists right before itself i.e.: <meta name="hello" /> before <meta name="hello" />
   // just bail out and return the original reference node (there's nothing to destroy/remove)
   var originalInsertBefore = window.Node.prototype.insertBefore;
-  window.Node.prototype.insertBefore = function(newNode, referenceNode) {
+  window.Node.prototype.insertBefore = function (newNode, referenceNode) {
     try {
-      if (this.nodeName !== "HEAD") {
+      if (this.nodeName !== 'HEAD') {
         return originalInsertBefore.apply(this, arguments);
       }
-      // TODO: (improvement) - this shouldn't just return the referenceNode
-      // it should replace the referenceNode with `this` so the client SPA has a reference
-      // (assuming the client SPA attaches a reference before insertBefore)
-      // (but I didn't see this break anything yet - 2017-03-06)
+
+      // if newNode and referenceNode are the same, remove the prerendered
+      // node, and insert the new client generated node in the exact same spot
+      // the placement is important for link tags (CSS) because order affects styling
       if (compareNodes(newNode, referenceNode)) {
-        return referenceNode;
+        var insertBeforeRes = originalInsertBefore.apply(this, arguments);
+        this.removeChild(referenceNode);
+        return insertBeforeRes;
       }
+
       deleteExistingIfExist(newNode, this);
       return originalInsertBefore.apply(this, arguments);
     } catch (err) {
