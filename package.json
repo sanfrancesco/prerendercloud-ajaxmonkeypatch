@@ -21,6 +21,7 @@
     "babel-cli": "^6.18.0",
     "babel-preset-babili": "0.0.9",
     "babel-preset-env": "^1.1.4",
+    "prettier": "^1.5.3",
     "semistandard": "^9.2.1"
   }
 }

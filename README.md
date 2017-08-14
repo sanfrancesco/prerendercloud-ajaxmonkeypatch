@@ -15,14 +15,13 @@ Adds a header, `X-Prerendered` to all XHR requests that signals to your middlewa
 ## Head DeDupe
 
 Prevents the client from inserting duplicate children of the head tag if they already exist (because the server rendered them).
-Examples: duplicate meta, script or link tags.
+Examples: duplicate meta, script, link or style tags.
 
 # Running the tests locally
 
-`npm start` (now view the results of the tests in your various browsers, e.g.: Chrome, Firefox, Safari, IE etc...)
+`make start` (now view the results of the tests in your various browsers, e.g.: Chrome, Firefox, Safari, IE etc...)
 
 * http://localhost:8888
-* http://localhost:8888/head-dedupe.html
 
 # Building (what gets injected)
 
