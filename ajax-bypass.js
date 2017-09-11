@@ -31,7 +31,7 @@ function ajaxMonkeyPatchForBypass(window, inputPathsToIgnore) {
 
   var validUrlForBypass = function(url) {
     var startsWithOrigin = url.startsWith(window.location.origin);
-    var relativePath = url.startsWith("/");
+    var relativePath = url.startsWith("/") && !url.startsWith("//");
     var isPathToIgnore = pathsToIgnore.indexOf(url) !== -1;
 
     return (startsWithOrigin || relativePath) && !isPathToIgnore;
