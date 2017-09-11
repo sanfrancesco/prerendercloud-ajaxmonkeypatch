@@ -97,6 +97,8 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
         serializeNodeTagAndAttrs(ourNode) ===
         serializeNodeTagAndAttrs(iteratingNode)
       );
+    } else if (ourNode.tagName === "STYLE") {
+      return ourNode.innerHTML === iteratingNode.innerHTML;
     } else {
       return ourNode.outerHTML === iteratingNode.outerHTML;
     }
@@ -106,7 +108,24 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
     var found = toArray(parentElement.children).find(function(child) {
       return compareNodes(nodeToInsert, child);
     });
-    if (found) parentElement.removeChild(found);
+    if (found) {
+      parentElement.removeChild(found);
+    } else if (nodeToInsert.tagName === "STYLE") {
+      // 1. if we're inserting a style node that doesn't already exist,
+      //    it probably means we're rendering the app at a different/zero state
+      //    and the server rendered copy was fully hydrated. so we'll just
+      //    rm all server-side rendered style tags at once since there's no other
+      //    time we can safely remove them (unless we knew exactly when the app was done rendering)
+      // 2. the issue with this approach is if we clear all server-side rendered CSS
+      //    too early, it's possible we'll have a flashing/flickering effect
+      try {
+        document
+          .querySelectorAll("style[prerendercloud-server-side-render]")
+          .forEach(el => el.parentNode.removeChild(el));
+      } catch (err) {
+        // noop
+      }
+    }
   }
 
   // 1. these 2 monkey patches (appendChild, insertBefore) prevent duplicate meta,

@@ -63,12 +63,14 @@ function ajaxMonkeyPatchForPreload(window, cachedResponses) {
   var origSend = window.XMLHttpRequest.prototype.send;
   window.XMLHttpRequest.prototype.send = function() {
     // bail out for non GET method
-    if (this._precloudMethod && !this._precloudMethod.match(/get/i))
+    if (this._precloudMethod && !this._precloudMethod.match(/get/i)) {
       return origSend.apply(this, arguments);
+    }
 
     // bail out right away if we don't have the URL
-    if (!cachedResponses[this._precloudurl])
+    if (!cachedResponses[this._precloudurl]) {
       return origSend.apply(this, arguments);
+    }
 
     var deferredHandler = function() {
       if (cachedResponses[this._precloudurl]) {
@@ -115,8 +117,9 @@ function ajaxMonkeyPatchForPreload(window, cachedResponses) {
           // reqwest needs this
           Object.defineProperty(this, "getResponseHeader", {
             value: function(headerName) {
-              if (headerName && headerName.match(/content-type/i))
+              if (headerName && headerName.match(/content-type/i)) {
                 return contentType;
+              }
             }
           });
         } catch (e) {
@@ -163,8 +166,9 @@ function ajaxMonkeyPatchForPreload(window, cachedResponses) {
     // 2. alternatively, i would have preferred to detect reqwest through a private var or artifact left over but couldn't find one
     // 3. sadly, even if we could call the handler immediately, in my tests, it didn't seem to prevent React.jse double rendering issues
     // 4. requestAnimationFrame gets called sooner than setTimeout
-    if (window.requestAnimationFrame)
+    if (window.requestAnimationFrame) {
       return window.requestAnimationFrame(deferredHandler);
+    }
     return setTimeout(deferredHandler, 0);
   };
 
