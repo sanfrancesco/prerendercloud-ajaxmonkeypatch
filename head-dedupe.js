@@ -90,6 +90,7 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
   //    a. meta rel=canonical (ignore href)
   //    b. any meta with a content attr (just assume the name or prop makes it unique)
   function compareNodes(ourNode, iteratingNode) {
+    if (!ourNode || !iteratingNode) return false;
     if (ourNode.tagName !== iteratingNode.tagName) return false;
 
     if (ourNode.tagName === "LINK" || ourNode.tagName === "META") {
@@ -104,13 +105,14 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
     }
   }
 
+  var hasClearedSsrSyle = false;
+
   function deleteExistingIfExist(nodeToInsert, parentElement) {
     var found = toArray(parentElement.children).find(function(child) {
       return compareNodes(nodeToInsert, child);
     });
-    if (found) {
-      parentElement.removeChild(found);
-    } else if (nodeToInsert.tagName === "STYLE") {
+
+    if (!hasClearedSsrSyle && nodeToInsert.tagName === "STYLE") {
       // 1. if we're inserting a style node that doesn't already exist,
       //    it probably means we're rendering the app at a different/zero state
       //    and the server rendered copy was fully hydrated. so we'll just
@@ -125,6 +127,9 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
       } catch (err) {
         // noop
       }
+      hasClearedSsrSyle = true;
+    } else if (found) {
+      parentElement.removeChild(found);
     }
   }
 
