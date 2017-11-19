@@ -14,8 +14,8 @@ Adds a header, `X-Prerendered` to all XHR requests that signals to your middlewa
 
 ## Head DeDupe
 
-Prevents the client from inserting duplicate children of the head tag if they already exist (because the server rendered them).
-Examples: duplicate meta, script, link or style tags.
+1. The first time the client attempts to insert/append a `<style>` tag, this script will delete all `<style>` tags created by the server (by looking for the `prerendercloud-server-side-render` attribute)
+2. On inserts/appends of meta/script/link elements that already exist, the existing will be deleted (the new one replaces it) so the framework (React, Angular, etc.) has a reference to the actual element.
 
 # Running the tests locally
 
