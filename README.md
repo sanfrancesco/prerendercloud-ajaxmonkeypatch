@@ -14,8 +14,22 @@ Adds a header, `X-Prerendered` to all XHR requests that signals to your middlewa
 
 ## Head DeDupe
 
-1. The first time the client attempts to insert/append a `<style>` tag, this script will delete all `<style>` tags created by the server (by looking for the `prerendercloud-server-side-render` attribute)
-2. On inserts/appends of meta/script/link elements that already exist, the existing will be deleted (the new one replaces it) so the framework (React, Angular, etc.) has a reference to the actual element.
+Head DeDupe monkeypatches insertBefore and appendChild for children of the head element. Its purpose is to prevent frameworks/libs (React, Angular, Vue, etc.) from insert
+ing/appending a script/meta/style tag if it already exists, e.g.:
+
+* duplicate meta tags (SEO)
+* duplicate script tags (read: analytics)
+* style tags being re-inserted causing incorrect overrides/specificity
+
+Some libraries don't need this because they check the children to see what already exists before inserting/appending (some React style libraries for example). Most Angular libraries do need this.
+
+It's designed to be conservative: if matching script/meta/style is found, remove it, then proceed with normal insert/append. If a match can't be found, or we're inserting an empty style tag, remove nothing and proceed with normal insert/append
+
+Caveats/Issues/Obersvations:
+
+* some libraries ([styled-components](https://github.com/styled-components/styled-components)) won't insert/append style tags if the elements within body are already pre-rendered (so we cannot _always_ delete all pre-rendered style tags)
+* some libraries ([react-native-web](https://github.com/necolas/react-native-web)) insert/append empty style tags and then update them (so we can't rely on comparisons during insert/append if the innerHTML is empty)
+* some libraries ([JSS](https://github.com/cssinjs/jss)) do search for specific UUIDs of element inserted into head and will re-attach to pre-rendered elements with those UUIDs instead of re-creating
 
 # Running the tests locally
 

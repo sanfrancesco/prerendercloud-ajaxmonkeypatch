@@ -99,36 +99,22 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
         serializeNodeTagAndAttrs(iteratingNode)
       );
     } else if (ourNode.tagName === "STYLE") {
-      return ourNode.innerHTML === iteratingNode.innerHTML;
+      if (ourNode.innerHTML && ourNode.innerHTML.length) {
+        return ourNode.innerHTML === iteratingNode.innerHTML;
+      } else {
+        return false;
+      }
     } else {
       return ourNode.outerHTML === iteratingNode.outerHTML;
     }
   }
-
-  var hasClearedSsrSyle = false;
 
   function deleteExistingIfExist(nodeToInsert, parentElement) {
     var found = toArray(parentElement.children).find(function(child) {
       return compareNodes(nodeToInsert, child);
     });
 
-    if (!hasClearedSsrSyle && nodeToInsert.tagName === "STYLE") {
-      // 1. if we're inserting a style node that doesn't already exist,
-      //    it probably means we're rendering the app at a different/zero state
-      //    and the server rendered copy was fully hydrated. so we'll just
-      //    rm all server-side rendered style tags at once since there's no other
-      //    time we can safely remove them (unless we knew exactly when the app was done rendering)
-      // 2. the issue with this approach is if we clear all server-side rendered CSS
-      //    too early, it's possible we'll have a flashing/flickering effect
-      try {
-        document
-          .querySelectorAll("style[prerendercloud-server-side-render]")
-          .forEach(el => el.parentNode.removeChild(el));
-      } catch (err) {
-        // noop
-      }
-      hasClearedSsrSyle = true;
-    } else if (found) {
+    if (found) {
       parentElement.removeChild(found);
     }
   }
@@ -160,9 +146,12 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
         return originalInsertBefore.apply(this, arguments);
       }
 
-      // if newNode and referenceNode are the same, remove the prerendered
-      // node, and insert the new client generated node in the exact same spot
-      // the placement is important for link tags (CSS) because order affects styling
+      // - If newNode and referenceNode are the same, remove the prerendered
+      //   node, and insert the new client generated node in the exact same spot.
+      // - The placement is important for link/style tags (CSS) because order affects styling
+      // - This separate code path of inserting before deleting is necessary because
+      //   some libraries inadvertently insert the same element immediately before the prerendered
+      //   element, so it still needs a reference to the original
       if (compareNodes(newNode, referenceNode)) {
         var insertBeforeRes = originalInsertBefore.apply(this, arguments);
         this.removeChild(referenceNode);
