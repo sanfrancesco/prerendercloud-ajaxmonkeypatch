@@ -56,6 +56,16 @@ function ajaxMonkeyPatchForPreload(window, cachedResponses) {
       ""
     );
 
+    // some clients add port 443 (but the URL observed within the pre-rendering process will not have a port)
+    // so we strip the port
+    if (
+      !cachedResponses[this._precloudurl] &&
+      this._precloudurl.match(/^https/) &&
+      this._precloudurl.match(/:443/)
+    ) {
+      this._precloudurl = this._precloudurl.replace(/:443/, "");
+    }
+
     return origOpen.apply(this, arguments);
   };
 
