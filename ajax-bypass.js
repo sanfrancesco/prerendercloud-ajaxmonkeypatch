@@ -24,6 +24,8 @@ function ajaxMonkeyPatchForBypass(window, inputPathsToIgnore) {
   if (!String.prototype.startsWith) {
     // eslint-disable-next-line no-extend-native
     String.prototype.startsWith = function(searchString, position) {
+      if (!searchString) return false;
+
       position = position || 0;
       return this.substr(position, searchString.length) === searchString;
     };
