@@ -52,7 +52,9 @@ function insertAppendMonkeyPatchForHeadDeDupe(window) {
 
         // 7. Return undefined.
         return undefined;
-      }
+      },
+      configurable: true,
+      writable: true
     });
   }
 
