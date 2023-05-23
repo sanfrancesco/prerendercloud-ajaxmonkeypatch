@@ -1,7 +1,4 @@
 {
-  "engines": {
-    "node": "6.9.2"
-  },
   "name": "prerendercloud-ajaxmonkeypatch",
   "version": "1.0.0",
   "description": "",
