@@ -52,6 +52,9 @@ function ajaxMonkeyPatchForBypass(window, inputPathsToIgnore) {
   if (window.fetch) {
     var realFetch = window.fetch;
     window.fetch = function(urlOrReq, init) {
+      if (urlOrReq == null) {
+        return Promise.reject("called fetch with null or undefined");
+      }
       if (urlOrReq && urlOrReq.headers) {
         if (urlOrReq && urlOrReq.url && validUrlForBypass(urlOrReq.url)) {
           urlOrReq.headers.set("x-prerendered", true);
